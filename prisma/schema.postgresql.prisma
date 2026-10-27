@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id                    String    @id @default(cuid())
+  slug                  String    @unique
+  name                  String
+  description           String?
+  whatsappPhone         String
+  instagramHandle       String
+  shippingFee           Float     @default(49.90)
+  freeShippingThreshold Float     @default(750.0)
+  address               String?
+  allowStorePickup      Boolean   @default(true)
+  ibanInfo              String?
+  createdAt             DateTime  @default(now())
+  products              Product[]
+  orders                Order[]
+}
+
+model Product {
+  id                 String           @id @default(cuid())
+  storeId            String
+  store              Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  price              Float
+  compareAtPrice     Float?
+  imageUrl           String
+  category           String           @default("Genel")
+  sku                String?
+  barcode            String?
+  stock              Int              @default(10)
+  isActive           Boolean          @default(true)
+  hideWhenOutOfStock Boolean          @default(false)
+  instagramPostUrl   String?
+  createdAt          DateTime         @default(now())
+  variants           ProductVariant[]
+  orderItems         OrderItem[]
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  sku       String?
+  barcode   String?
+  priceDiff Float   @default(0)
+  stock     Int     @default(5)
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  storeId         String
+  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  deliveryType    String      @default("SHIPPING")
+  paymentMethod   String      @default("IBAN_TRANSFER")
+  channel         String      @default("WHATSAPP")
+  subtotal        Float
+  shippingCost    Float
+  totalAmount     Float
+  status          String      @default("NEW")
+  note            String?
+  createdAt       DateTime    @default(now())
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId   String?
+  productName String
+  variantName String?
+  sku         String?
+  barcode     String?
+  quantity    Int
+  unitPrice   Float
+}
