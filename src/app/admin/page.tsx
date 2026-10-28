@@ -35,7 +35,7 @@ interface StoreItem {
 }
 
 // 4 palettes inspired directly by user's nature & interior references
-export const PALETTE_PRESETS = [
+const PALETTE_PRESETS = [
   {
     id: 'natural',
     name: 'Doğal Keten & Vizon (Natural)',
