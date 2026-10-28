@@ -9,10 +9,6 @@ import {
   Barcode,
   Plus,
   Minus,
-  Trash2,
-  ExternalLink,
-  MessageCircle,
-  Instagram,
   CheckCircle2,
   Clock,
   Truck,
@@ -22,6 +18,7 @@ import {
   Eye,
   Camera,
   Lock,
+  MessageCircle,
 } from 'lucide-react';
 import { formatCurrency, buildCustomerStatusWhatsAppUrl } from '@/lib/format';
 
@@ -106,27 +103,27 @@ const STATUS_META: Record<
 > = {
   NEW: {
     label: 'Yeni',
-    badgeClass: 'bg-[#faf2ed] text-[#a87857] border-[#e8dfcf]',
+    badgeClass: 'bg-[#f9f1e6] text-[#8e5e38] border-[#eddcc8]',
     icon: Clock,
   },
   PREPARING: {
     label: 'Hazırlanıyor',
-    badgeClass: 'bg-[#f4f7f6] text-[#47635e] border-[#d6dfd4]',
+    badgeClass: 'bg-[#eaf0f2] text-[#2f5663] border-[#cfdee2]',
     icon: Package,
   },
   SHIPPED: {
     label: 'Kargoda',
-    badgeClass: 'bg-[#f7f2eb] text-[#8b634d] border-[#e2d3be]',
+    badgeClass: 'bg-[#f7ede5] text-[#8c5f4a] border-[#e5dcce]',
     icon: Truck,
   },
   COMPLETED: {
     label: 'Tamamlandı',
-    badgeClass: 'bg-[#edf2ec] text-[#3d5752] border-[#c8d4c6]',
+    badgeClass: 'bg-[#edf2eb] text-[#415e58] border-[#d4e0d1]',
     icon: CheckCircle2,
   },
   CANCELLED: {
     label: 'İptal',
-    badgeClass: 'bg-[#faebe8] text-[#8e3c2f] border-[#f0c2b8]',
+    badgeClass: 'bg-[#f7ece8] text-[#783e35] border-[#edd5cd]',
     icon: XCircle,
   },
 };
@@ -288,7 +285,7 @@ export default function StoreSellerPanel({
     });
 
     if (res.ok) {
-      showToast('Ürün başarıyla vitrine eklendi! 🎉');
+      showToast('Ürün başarıyla vitrine eklendi!');
       setShowAddProduct(false);
       setProdName('');
       setProdPrice('');
@@ -348,8 +345,8 @@ export default function StoreSellerPanel({
 
   if (loading || !store) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f7f5f0]">
-        <RefreshCw className="w-8 h-8 text-[#786c64] animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
+        <RefreshCw className="w-8 h-8 text-[#78695e] animate-spin" />
       </div>
     );
   }
@@ -357,15 +354,15 @@ export default function StoreSellerPanel({
   // PIN Login Gate in Soft Earth Tones
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#f7f5f0] flex items-center justify-center p-4 font-sans">
-        <div className="bg-white border border-[#e8dfcf] rounded-3xl max-w-sm w-full p-8 text-center space-y-6 shadow-sm">
-          <div className="w-16 h-16 rounded-3xl bg-[#f4ece1] text-[#7a513a] flex items-center justify-center mx-auto border border-[#e2d8c5]">
+      <div className="min-h-screen bg-[#f7f4ee] flex items-center justify-center p-4 font-sans">
+        <div className="bg-white border border-[#e5dcce] rounded-3xl max-w-sm w-full p-8 text-center space-y-6 shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-[#f2ece1] text-[#8c5f4a] flex items-center justify-center mx-auto border border-[#e5dcce]">
             <Lock className="w-7 h-7" />
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-[#312925]">{store.name}</h2>
-            <p className="text-xs text-[#786c64] mt-1">
+            <h2 className="text-xl font-bold text-[#33261f]">{store.name}</h2>
+            <p className="text-xs text-[#78695e] mt-1">
               Satıcı yönetim paneline erişmek için 4 haneli PIN kodunuzu girin.
             </p>
           </div>
@@ -379,10 +376,10 @@ export default function StoreSellerPanel({
                 placeholder="PIN Kodu (Varsayılan: 1234)"
                 value={enteredPin}
                 onChange={(e) => setEnteredPin(e.target.value)}
-                className="w-full text-center text-xl font-bold tracking-widest py-3 px-4 bg-[#f9f7f2] border border-[#e2d8c5] rounded-2xl text-[#312925] outline-none focus:border-[#8b634d]"
+                className="w-full text-center text-xl font-bold tracking-widest py-3 px-4 bg-[#f2ece1] border border-[#e5dcce] rounded-2xl text-[#33261f] outline-none focus:border-[#8c5f4a]"
               />
               {pinError && (
-                <p className="text-xs text-[#8e3c2f] mt-2 font-semibold">
+                <p className="text-xs text-[#783e35] mt-2 font-semibold">
                   Hatalı PIN kodu! (Varsayılan: 1234)
                 </p>
               )}
@@ -390,13 +387,13 @@ export default function StoreSellerPanel({
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] shadow-sm cursor-pointer transition"
+              className="w-full py-3.5 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs cursor-pointer transition"
             >
               Giriş Yap
             </button>
           </form>
 
-          <p className="text-[11px] text-[#8a7c73]">
+          <p className="text-[11px] text-[#9e8e82]">
             PIN kodunu unuttuysanız Süper Admin panelinden görebilirsiniz.
           </p>
         </div>
@@ -407,35 +404,35 @@ export default function StoreSellerPanel({
   const newOrdersCount = store.orders.filter((o) => o.status === 'NEW').length;
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-[#312925] pb-20 font-sans">
+    <div className="min-h-screen bg-[#f7f4ee] text-[#33261f] pb-20 font-sans">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 bg-[#312925] text-[#f7f4ee] px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-[#4a3f39]">
+        <div className="fixed bottom-5 right-5 z-50 bg-[#3e312b] text-[#f7f4ee] px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-[#524139]">
           <CheckCircle2 className="w-4 h-4 text-[#cfbeab]" />
           <span>{toast}</span>
         </div>
       )}
 
       {/* Top Header */}
-      <header className="bg-white border-b border-[#e8dfcf] sticky top-0 z-30">
+      <header className="bg-white border-b border-[#e5dcce] sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm shrink-0"
-              style={{ backgroundColor: store.themeColor || '#3c302a' }}
+              style={{ backgroundColor: store.themeColor || '#3e312b' }}
             >
               {store.name.slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h1 className="font-bold text-sm sm:text-base text-[#312925] leading-tight">
+                <h1 className="font-bold text-sm sm:text-base text-[#33261f] leading-tight">
                   {store.name}
                 </h1>
-                <span className="bg-[#ede2d5] text-[#6d4c38] text-[10px] font-semibold px-1.5 py-0.5 rounded-md">
+                <span className="bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-1.5 py-0.5 rounded-md">
                   Panel
                 </span>
               </div>
-              <p className="text-[11px] text-[#8a7c73] font-mono">
+              <p className="text-[11px] text-[#78695e] font-mono">
                 /{store.slug}
               </p>
             </div>
@@ -450,7 +447,7 @@ export default function StoreSellerPanel({
                 setTimeout(() => setCopiedBio(false), 2000);
                 showToast('Instagram Bio linki kopyalandı!');
               }}
-              className="inline-flex items-center gap-1 text-xs font-semibold bg-[#f4ece1] hover:bg-[#eadbc9] text-[#4a3a31] px-3 py-2 rounded-xl transition cursor-pointer border border-[#e2d8c5]"
+              className="inline-flex items-center gap-1 text-xs font-semibold bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] px-3 py-2 rounded-xl transition cursor-pointer border border-[#e5dcce]"
             >
               <Copy className="w-3.5 h-3.5" />
               {copiedBio ? 'Kopyalandı ✓' : 'Bio Linkini Kopyala'}
@@ -459,7 +456,7 @@ export default function StoreSellerPanel({
             <Link
               href={`/${store.slug}`}
               target="_blank"
-              className="inline-flex items-center gap-1 text-xs font-semibold bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] px-3 py-2 rounded-xl transition shadow-xs"
+              className="inline-flex items-center gap-1 text-xs font-semibold bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] px-3 py-2 rounded-xl transition shadow-xs"
             >
               <Eye className="w-3.5 h-3.5" />
               Vitrini Gör
@@ -468,13 +465,13 @@ export default function StoreSellerPanel({
         </div>
 
         {/* Tab Buttons */}
-        <div className="max-w-5xl mx-auto px-4 flex items-center gap-1 border-t border-[#f0e9dd] overflow-x-auto">
+        <div className="max-w-5xl mx-auto px-4 flex items-center gap-1 border-t border-[#f2ece1] overflow-x-auto">
           <button
             onClick={() => setActiveTab('products')}
             className={`py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'products'
-                ? 'border-[#3c302a] text-[#312925]'
-                : 'border-transparent text-[#786c64]'
+                ? 'border-[#3e312b] text-[#33261f]'
+                : 'border-transparent text-[#78695e]'
             }`}
           >
             <Package className="w-4 h-4" />
@@ -485,14 +482,14 @@ export default function StoreSellerPanel({
             onClick={() => setActiveTab('orders')}
             className={`py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'orders'
-                ? 'border-[#3c302a] text-[#312925]'
-                : 'border-transparent text-[#786c64]'
+                ? 'border-[#3e312b] text-[#33261f]'
+                : 'border-transparent text-[#78695e]'
             }`}
           >
             <ShoppingCart className="w-4 h-4" />
             Siparişler ({store.orders.length})
             {newOrdersCount > 0 && (
-              <span className="bg-[#a87857] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              <span className="bg-[#8c5f4a] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                 {newOrdersCount} Yeni
               </span>
             )}
@@ -502,8 +499,8 @@ export default function StoreSellerPanel({
             onClick={() => setActiveTab('pos')}
             className={`py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'pos'
-                ? 'border-[#3c302a] text-[#312925]'
-                : 'border-transparent text-[#786c64]'
+                ? 'border-[#3e312b] text-[#33261f]'
+                : 'border-transparent text-[#78695e]'
             }`}
           >
             <Barcode className="w-4 h-4" />
@@ -514,8 +511,8 @@ export default function StoreSellerPanel({
             onClick={() => setActiveTab('settings')}
             className={`py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'settings'
-                ? 'border-[#3c302a] text-[#312925]'
-                : 'border-transparent text-[#786c64]'
+                ? 'border-[#3e312b] text-[#33261f]'
+                : 'border-transparent text-[#78695e]'
             }`}
           >
             <Settings className="w-4 h-4" />
@@ -530,17 +527,17 @@ export default function StoreSellerPanel({
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-[#312925]">
+                <h2 className="text-base font-bold text-[#33261f]">
                   Ürün Listesi & Hızlı Ekleme
                 </h2>
-                <p className="text-xs text-[#786c64]">
+                <p className="text-xs text-[#78695e]">
                   Telefonunuzdan fotoğraf seçerek ürün ekleyin.
                 </p>
               </div>
 
               <button
                 onClick={() => setShowAddProduct(!showAddProduct)}
-                className="inline-flex items-center gap-1.5 bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 {showAddProduct ? 'Formu Kapat' : 'Fotoğraflı Yeni Ürün Ekle'}
@@ -551,9 +548,9 @@ export default function StoreSellerPanel({
             {showAddProduct && (
               <form
                 onSubmit={handleCreateProduct}
-                className="bg-white rounded-3xl border border-[#e8dfcf] p-5 sm:p-6 shadow-xs space-y-5"
+                className="bg-white rounded-3xl border border-[#e5dcce] p-5 sm:p-6 shadow-xs space-y-5"
               >
-                <h3 className="font-bold text-sm text-[#312925] border-b border-[#f0e9dd] pb-3">
+                <h3 className="font-bold text-sm text-[#33261f] border-b border-[#f2ece1] pb-3">
                   📸 Telefondan Yeni Ürün Ekle
                 </h3>
 
@@ -563,7 +560,7 @@ export default function StoreSellerPanel({
                     1. Ürün Fotoğrafı Seç (Galeri veya Kamera) *
                   </label>
                   <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <label className="w-full sm:w-44 h-44 rounded-2xl border-2 border-dashed border-[#cfbeab] hover:border-[#3c302a] bg-[#f9f7f2] flex flex-col items-center justify-center cursor-pointer transition relative overflow-hidden shrink-0">
+                    <label className="w-full sm:w-44 h-44 rounded-2xl border-2 border-dashed border-[#ba9b81] hover:border-[#3e312b] bg-[#f2ece1] flex flex-col items-center justify-center cursor-pointer transition relative overflow-hidden shrink-0">
                       {prodImageUrl ? (
                         <img
                           src={prodImageUrl}
@@ -571,12 +568,12 @@ export default function StoreSellerPanel({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="text-center p-3 text-[#786c64]">
-                          <Camera className="w-8 h-8 mx-auto mb-1 text-[#8b634d]" />
-                          <span className="text-xs font-bold block text-[#312925]">
+                        <div className="text-center p-3 text-[#78695e]">
+                          <Camera className="w-8 h-8 mx-auto mb-1 text-[#8c5f4a]" />
+                          <span className="text-xs font-bold block text-[#33261f]">
                             {uploadingImage ? 'Yükleniyor...' : 'Fotoğraf Çek / Yükle'}
                           </span>
-                          <span className="text-[10px] text-[#8a7c73]">
+                          <span className="text-[10px] text-[#78695e]">
                             Galeri veya kamera
                           </span>
                         </div>
@@ -589,15 +586,15 @@ export default function StoreSellerPanel({
                       />
                     </label>
 
-                    <div className="text-xs text-[#665a52] space-y-1">
-                      <p className="font-semibold text-[#312925]">
+                    <div className="text-xs text-[#78695e] space-y-1">
+                      <p className="font-semibold text-[#33261f]">
                         Fotoğraf eklemek çok kolay:
                       </p>
                       <p>
                         Kutucuğa tıklayarak telefonunuzun kamerasını açabilir veya galeriden
                         ürün fotoğrafı seçebilirsiniz.
                       </p>
-                      <p className="text-[11px] text-[#8a7c73]">
+                      <p className="text-[11px] text-[#9e8e82]">
                         Fotoğraf anında sisteme yüklenir ve vitrinde görünür.
                       </p>
                     </div>
@@ -616,7 +613,7 @@ export default function StoreSellerPanel({
                       placeholder="Örn: Keten Düğmeli Elbise"
                       value={prodName}
                       onChange={(e) => setProdName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8b634d] text-[#312925]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
                     />
                   </div>
 
@@ -629,7 +626,7 @@ export default function StoreSellerPanel({
                       value={prodCategory}
                       onChange={(e) => setProdCategory(e.target.value)}
                       placeholder="Elbise, Üst Giyim..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8b634d] text-[#312925]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
                     />
                   </div>
 
@@ -644,7 +641,7 @@ export default function StoreSellerPanel({
                       placeholder="499.90"
                       value={prodPrice}
                       onChange={(e) => setProdPrice(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8b634d] text-[#312925]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
                     />
                   </div>
 
@@ -658,7 +655,7 @@ export default function StoreSellerPanel({
                       placeholder="650.00"
                       value={prodComparePrice}
                       onChange={(e) => setProdComparePrice(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8b634d] text-[#312925]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
                     />
                   </div>
 
@@ -670,13 +667,13 @@ export default function StoreSellerPanel({
                       type="number"
                       value={prodStock}
                       onChange={(e) => setProdStock(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8b634d] text-[#312925]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
                     />
                   </div>
                 </div>
 
                 {/* Simple Variants Builder */}
-                <div className="bg-[#f9f7f2] p-4 rounded-2xl border border-[#ede5d8] space-y-2.5">
+                <div className="bg-[#f2ece1] p-4 rounded-2xl border border-[#e5dcce] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-[#4a3f39]">
                       Beden / Renk Seçenekleri
@@ -689,7 +686,7 @@ export default function StoreSellerPanel({
                           { name: '', sku: '', stock: 5 },
                         ])
                       }
-                      className="text-xs font-bold text-[#8b634d] hover:underline cursor-pointer"
+                      className="text-xs font-bold text-[#8c5f4a] hover:underline cursor-pointer"
                     >
                       + Beden Ekle
                     </button>
@@ -699,7 +696,7 @@ export default function StoreSellerPanel({
                     {prodVariants.map((v, i) => (
                       <div
                         key={i}
-                        className="bg-white p-2 rounded-xl border border-[#e2d8c5] flex items-center justify-between gap-1"
+                        className="bg-white p-2 rounded-xl border border-[#e5dcce] flex items-center justify-between gap-1"
                       >
                         <input
                           type="text"
@@ -710,14 +707,14 @@ export default function StoreSellerPanel({
                             copy[i].name = e.target.value;
                             setProdVariants(copy);
                           }}
-                          className="w-full text-xs font-bold outline-none text-[#312925]"
+                          className="w-full text-xs font-bold outline-none text-[#33261f]"
                         />
                         <button
                           type="button"
                           onClick={() =>
                             setProdVariants(prodVariants.filter((_, idx) => idx !== i))
                           }
-                          className="text-[#9c8e84] hover:text-[#8e3c2f] p-0.5 cursor-pointer"
+                          className="text-[#9e8e82] hover:text-[#783e35] p-0.5 cursor-pointer"
                         >
                           ✕
                         </button>
@@ -730,13 +727,13 @@ export default function StoreSellerPanel({
                   <button
                     type="button"
                     onClick={() => setShowAddProduct(false)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#f4ece1] hover:bg-[#eadbc9] text-[#4a3a31] cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] cursor-pointer"
                   >
                     Vazgeç
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] cursor-pointer shadow-xs"
+                    className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] cursor-pointer shadow-xs"
                   >
                     Ürünü Vitrine Yayınla
                   </button>
@@ -749,42 +746,42 @@ export default function StoreSellerPanel({
               {store.products.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-white rounded-2xl border border-[#e8dfcf] p-3.5 flex items-center justify-between gap-3 shadow-2xs"
+                  className="bg-white rounded-2xl border border-[#e5dcce] p-3.5 flex items-center justify-between gap-3 shadow-2xs"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <img
                       src={p.imageUrl}
                       alt={p.name}
-                      className="w-14 h-16 rounded-xl object-cover bg-[#f4efe8] shrink-0 border border-[#e8dfcf]"
+                      className="w-14 h-16 rounded-xl object-cover bg-[#f2ece1] shrink-0 border border-[#e5dcce]"
                     />
                     <div className="min-w-0">
-                      <h4 className="font-bold text-xs sm:text-sm text-[#312925] truncate">
+                      <h4 className="font-bold text-xs sm:text-sm text-[#33261f] truncate">
                         {p.name}
                       </h4>
-                      <p className="text-xs font-bold text-[#312925] mt-0.5">
+                      <p className="text-xs font-bold text-[#33261f] mt-0.5">
                         {formatCurrency(p.price)}
                       </p>
-                      <p className="text-[11px] text-[#786c64] mt-0.5">
-                        Kalan Stok: <strong className="text-[#312925]">{p.stock} adet</strong>
+                      <p className="text-[11px] text-[#78695e] mt-0.5">
+                        Kalan Stok: <strong className="text-[#33261f]">{p.stock} adet</strong>
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     {/* Quick Stock Controls */}
-                    <div className="flex items-center gap-1 bg-[#f9f7f2] border border-[#e2d8c5] rounded-xl p-1">
+                    <div className="flex items-center gap-1 bg-[#f2ece1] border border-[#e5dcce] rounded-xl p-1">
                       <button
                         type="button"
                         onClick={() => handleStockQuickChange(p.id, null, p.stock - 1)}
-                        className="p-1 text-[#786c64] hover:text-[#312925] cursor-pointer"
+                        className="p-1 text-[#78695e] hover:text-[#33261f] cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="text-xs font-bold w-5 text-center text-[#312925]">{p.stock}</span>
+                      <span className="text-xs font-bold w-5 text-center text-[#33261f]">{p.stock}</span>
                       <button
                         type="button"
                         onClick={() => handleStockQuickChange(p.id, null, p.stock + 1)}
-                        className="p-1 text-[#786c64] hover:text-[#312925] cursor-pointer"
+                        className="p-1 text-[#78695e] hover:text-[#33261f] cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -800,21 +797,21 @@ export default function StoreSellerPanel({
         {activeTab === 'orders' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-[#312925]">
+              <h2 className="text-base font-bold text-[#33261f]">
                 Gelen Siparişler ({store.orders.length})
               </h2>
               <button
                 onClick={fetchStore}
-                className="text-xs font-semibold text-[#786c64] hover:text-[#312925] flex items-center gap-1"
+                className="text-xs font-semibold text-[#78695e] hover:text-[#33261f] flex items-center gap-1"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Yenile
               </button>
             </div>
 
             {store.orders.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-[#e8dfcf] p-12 text-center shadow-xs">
+              <div className="bg-white rounded-3xl border border-[#e5dcce] p-12 text-center shadow-xs">
                 <ShoppingCart className="w-10 h-10 text-[#cfbeab] mx-auto mb-2" />
-                <p className="font-bold text-[#312925]">Henüz sipariş yok</p>
+                <p className="font-bold text-[#33261f]">Henüz sipariş yok</p>
               </div>
             ) : (
               <div className="space-y-3.5">
@@ -832,11 +829,11 @@ export default function StoreSellerPanel({
                   return (
                     <div
                       key={ord.id}
-                      className="bg-white rounded-3xl border border-[#e8dfcf] p-4 sm:p-5 shadow-2xs space-y-3"
+                      className="bg-white rounded-3xl border border-[#e5dcce] p-4 sm:p-5 shadow-2xs space-y-3"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f0e9dd] pb-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#f2ece1] pb-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-[#312925]">
+                          <span className="font-bold text-sm text-[#33261f]">
                             #{ord.orderNumber}
                           </span>
                           <span
@@ -845,38 +842,38 @@ export default function StoreSellerPanel({
                             {meta.label}
                           </span>
                           {ord.channel === 'WHATSAPP' ? (
-                            <span className="text-[10px] font-medium text-[#47635e] bg-[#edf2ec] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-medium text-[#415e58] bg-[#edf2eb] px-2 py-0.5 rounded-full">
                               WhatsApp
                             </span>
                           ) : (
-                            <span className="text-[10px] font-medium text-[#8b634d] bg-[#fbf7f4] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-medium text-[#8c5f4a] bg-[#f7ede5] px-2 py-0.5 rounded-full">
                               Instagram DM
                             </span>
                           )}
                         </div>
 
-                        <span className="font-bold text-base text-[#312925]">
+                        <span className="font-bold text-base text-[#33261f]">
                           {formatCurrency(ord.totalAmount)}
                         </span>
                       </div>
 
                       {/* Customer & Items */}
-                      <div className="text-xs space-y-1 text-[#665a52]">
+                      <div className="text-xs space-y-1 text-[#78695e]">
                         <p>
                           <strong>Müşteri:</strong> {ord.customerName} ({ord.customerPhone})
                         </p>
                         <p>
                           <strong>Adres:</strong> {ord.customerAddress}
                         </p>
-                        <p className="text-[#8a7c73]">
+                        <p className="text-[#9e8e82]">
                           {ord.items.map((i) => `${i.quantity}x ${i.productName}`).join(', ')}
                         </p>
                       </div>
 
                       {/* Actions */}
-                      <div className="pt-2 border-t border-[#f0e9dd] flex flex-wrap items-center justify-between gap-2">
+                      <div className="pt-2 border-t border-[#f2ece1] flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-1">
-                          <span className="text-[11px] font-semibold text-[#8a7c73] mr-1">
+                          <span className="text-[11px] font-semibold text-[#9e8e82] mr-1">
                             Durum:
                           </span>
                           {['NEW', 'PREPARING', 'SHIPPED', 'COMPLETED'].map((stKey) => (
@@ -885,8 +882,8 @@ export default function StoreSellerPanel({
                               onClick={() => handleUpdateOrderStatus(ord.id, stKey)}
                               className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold cursor-pointer ${
                                 ord.status === stKey
-                                  ? 'bg-[#3c302a] text-white'
-                                  : 'bg-[#f4ece1] text-[#4a3a31] hover:bg-[#eadbc9]'
+                                  ? 'bg-[#3e312b] text-white'
+                                  : 'bg-[#f2ece1] text-[#33261f] hover:bg-[#eae3d6]'
                               }`}
                             >
                               {STATUS_META[stKey].label}
@@ -898,7 +895,7 @@ export default function StoreSellerPanel({
                           href={notifyUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#47635e] hover:bg-[#384e4a] px-3 py-1.5 rounded-xl transition shadow-xs"
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#415e58] hover:bg-[#344d48] px-3 py-1.5 rounded-xl transition shadow-xs"
                         >
                           <MessageCircle className="w-3 h-3" />
                           Müşteriye WhatsApp Bildir
@@ -914,12 +911,12 @@ export default function StoreSellerPanel({
 
         {/* TAB 3: PHYSICAL STORE POS */}
         {activeTab === 'pos' && (
-          <div className="bg-white rounded-3xl border border-[#e8dfcf] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-3xl border border-[#e5dcce] p-5 sm:p-6 shadow-xs space-y-4">
             <div>
-              <h2 className="text-base font-bold text-[#312925]">
+              <h2 className="text-base font-bold text-[#33261f]">
                 Fiziksel Dükkan / Kasa Satışı
               </h2>
-              <p className="text-xs text-[#786c64]">
+              <p className="text-xs text-[#78695e]">
                 Dükkanda elden satılan ürünün stoğunu tek dokunuşla düşürün. Böylece Instagram
                 müşterisi biten ürünü sipariş edemez.
               </p>
@@ -929,11 +926,11 @@ export default function StoreSellerPanel({
               {store.products.map((p) => (
                 <div
                   key={p.id}
-                  className="p-3 rounded-2xl border border-[#e8dfcf] bg-[#f9f7f2] flex items-center justify-between gap-2"
+                  className="p-3 rounded-2xl border border-[#e5dcce] bg-[#f2ece1]/60 flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
-                    <p className="font-bold text-xs text-[#312925] truncate">{p.name}</p>
-                    <p className="text-[11px] font-semibold text-[#47635e] mt-0.5">
+                    <p className="font-bold text-xs text-[#33261f] truncate">{p.name}</p>
+                    <p className="text-[11px] font-semibold text-[#415e58] mt-0.5">
                       Kalan Stok: {p.stock}
                     </p>
                   </div>
@@ -944,7 +941,7 @@ export default function StoreSellerPanel({
                       handleStockQuickChange(p.id, null, p.stock - 1);
                       showToast(`Dükkanda satıldı: ${p.name} (-1 stok)`);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-[#3c302a] text-[#f7f4ee] font-semibold text-xs hover:bg-[#2b221d] disabled:opacity-40 cursor-pointer shrink-0"
+                    className="px-3 py-1.5 rounded-xl bg-[#3e312b] text-[#f7f4ee] font-semibold text-xs hover:bg-[#2b221d] disabled:opacity-40 cursor-pointer shrink-0"
                   >
                     -1 Elden Satıldı
                   </button>
@@ -958,9 +955,9 @@ export default function StoreSellerPanel({
         {activeTab === 'settings' && (
           <form
             onSubmit={handleSaveSettings}
-            className="bg-white rounded-3xl border border-[#e8dfcf] p-5 sm:p-6 shadow-xs max-w-2xl space-y-4"
+            className="bg-white rounded-3xl border border-[#e5dcce] p-5 sm:p-6 shadow-xs max-w-2xl space-y-4"
           >
-            <h2 className="text-base font-bold text-[#312925] border-b border-[#f0e9dd] pb-3">
+            <h2 className="text-base font-bold text-[#33261f] border-b border-[#f2ece1] pb-3">
               Mağaza & İletişim Ayarları
             </h2>
 
@@ -974,7 +971,7 @@ export default function StoreSellerPanel({
                   required
                   value={settings.name}
                   onChange={(e) => setSettings({ ...settings, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#312925]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
                 />
               </div>
 
@@ -989,7 +986,7 @@ export default function StoreSellerPanel({
                   onChange={(e) =>
                     setSettings({ ...settings, whatsappPhone: e.target.value })
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm font-mono outline-none text-[#312925]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm font-mono outline-none text-[#33261f]"
                 />
               </div>
 
@@ -1003,7 +1000,7 @@ export default function StoreSellerPanel({
                   onChange={(e) =>
                     setSettings({ ...settings, instagramHandle: e.target.value })
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#312925]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
                 />
               </div>
 
@@ -1016,7 +1013,7 @@ export default function StoreSellerPanel({
                   maxLength={6}
                   value={settings.pinCode}
                   onChange={(e) => setSettings({ ...settings, pinCode: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm font-mono text-[#8b634d] font-bold outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm font-mono text-[#8c5f4a] font-bold outline-none"
                 />
               </div>
 
@@ -1028,14 +1025,14 @@ export default function StoreSellerPanel({
                   type="text"
                   value={settings.ibanInfo}
                   onChange={(e) => setSettings({ ...settings, ibanInfo: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#312925]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl font-bold text-xs bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] cursor-pointer shadow-xs"
+              className="px-6 py-2.5 rounded-xl font-bold text-xs bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] cursor-pointer shadow-xs"
             >
               Ayarları Kaydet
             </button>

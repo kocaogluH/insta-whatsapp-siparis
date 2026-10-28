@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
+:root {
+  /* ========================================================
+     DOĞAL REFERANS PALETİ (Natural / Okyanus / Çöl / Gün Batımı)
+     Sıfır neon. Tüm sistemde sıcak keten, vizon, adaçayı,
+     kiremit ve koyu espresso tonları.
+     ======================================================== */
+  --bg-surface: #f7f4ee;       /* Sis Bulutu: Sıcak doğal keten zemin */
+  --bg-card: #ffffff;          /* Kart ve panel beyazı */
+  --bg-warm: #f2ece1;          /* Bademi / Hasır yumuşak zemin */
+  --bg-muted: #eae3d6;         /* Buton hover ve ikincil zemin */
+
+  --border-subtle: #e5dcce;    /* Yumuşak keten kontur */
+  --border-medium: #d4c5b3;    /* Kart ve input konturu */
+  --border-strong: #8c5f4a;    /* Tan 155 aktif odak konturu */
+
+  --text-main: #33261f;        /* Tan 10: Derin espresso metin (Asla yapay siyah değil) */
+  --text-muted: #78695e;       /* Bozkır / Taupe ikincil metin */
+  --text-light: #9e8e82;       /* Açık kum / açıklama metni */
+
+  /* Buton & Vurgu Tonları */
+  --primary: #3e312b;          /* Tan 10 Koyu espresso */
+  --primary-hover: #2b221d;    /* Daha derin espresso */
+  --primary-text: #f7f4ee;     /* Keten beyazı yazı */
+
+  --accent: #8c5f4a;           /* Tan 155 Kiremit / Tarçın */
+  --accent-hover: #754e3c;     
+  --accent-soft: #f7ede5;      
+
+  /* Doğal Durum Renkleri (Neon Değil, Organik Toprak Tonları) */
+  --status-green-bg: #edf2eb;  /* Kaktüs 20 / Yağ yeşili */
+  --status-green-text: #415e58;/* Irmak 30 derin adaçayı */
+  --status-green-border: #d4e0d1;
+
+  --status-amber-bg: #f9f1e6;  /* Hasır / Mango 95 */
+  --status-amber-text: #8e5e38;/* Tan 150 sıcak karamel */
+  --status-amber-border: #eddcc8;
+
+  --status-rose-bg: #f7ece8;   /* Kıvılcım 205 / Terracotta */
+  --status-rose-text: #783e35; /* Tan 35 yanık kiremit */
+  --status-rose-border: #edd5cd;
+
+  --status-blue-bg: #eaf0f2;   /* Kozmik 55 / Sis mavisi */
+  --status-blue-text: #2f5663; /* Irmak 215 sakin petrol */
+  --status-blue-border: #cfdee2;
+}
+
 @layer base {
   body {
-    background-color: #f7f5f0; /* Sis Bulutu / Doğal Keten */
-    color: #312925; /* Koyu Espresso / Tan 10 */
+    background-color: var(--bg-surface);
+    color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Custom aesthetic scrollbar */
+/* Doğal scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1ede4;
+  background: var(--bg-warm);
 }
 ::-webkit-scrollbar-thumb {
-  background: #cfbeab;
+  background: var(--border-medium);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #b39b83;
+  background: var(--text-light);
 }

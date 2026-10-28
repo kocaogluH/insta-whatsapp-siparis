@@ -355,23 +355,23 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     }
   };
 
-  const themePrimary = store.themeColor || '#3c302a';
+  const themePrimary = store.themeColor || '#3e312b';
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-[#312925] pb-28 font-sans selection:bg-[#ede2d5] selection:text-[#312925]">
-      {/* Top Demo Bar in Warm Walnut Tone */}
-      <div className="bg-[#3c302a] text-[#f4efe8] text-xs py-2 px-4 border-b border-[#2e241f]">
+    <div className="min-h-screen bg-[#f7f4ee] text-[#33261f] pb-28 font-sans selection:bg-[#eae3d6] selection:text-[#33261f]">
+      {/* Top Demo Bar in Warm Linen Tone */}
+      <div className="bg-[#3e312b] text-[#f7f4ee] text-xs py-2 px-4 border-b border-[#2b221d]">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#cbb19b] animate-pulse" />
-            <span className="font-medium text-[#f4efe8]">
+            <span className="w-2 h-2 rounded-full bg-[#ba9b81] animate-pulse" />
+            <span className="font-medium text-[#f7f4ee]">
               Canlı Katalog: <strong className="text-white">/{store.slug}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href={`/${store.slug}/panel`}
-              className="text-xs font-semibold text-[#ebd7c5] hover:text-white bg-white/10 px-2.5 py-1 rounded-lg border border-white/15 transition"
+              className="text-xs font-semibold text-[#e7cdbb] hover:text-white bg-white/10 px-2.5 py-1 rounded-lg border border-white/15 transition"
             >
               Mağaza Paneli →
             </Link>
@@ -386,9 +386,9 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       </div>
 
       {/* Luxury Boutique Hero Header */}
-      <div className="relative bg-white border-b border-[#e8dfcf]">
+      <div className="relative bg-white border-b border-[#e5dcce]">
         {/* Banner Cover Image */}
-        <div className="h-36 sm:h-52 w-full bg-[#e8dfcf] relative overflow-hidden">
+        <div className="h-36 sm:h-52 w-full bg-[#eae3d6] relative overflow-hidden">
           {store.bannerUrl ? (
             <img
               src={store.bannerUrl}
@@ -396,9 +396,9 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-[#d9cdbe]" />
+            <div className="w-full h-full bg-[#dcd2c4]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         </div>
 
         {/* Store Avatar & Profile Info */}
@@ -425,16 +425,16 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
 
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-[#312925] tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#33261f] tracking-tight">
                     {store.name}
                   </h1>
-                  <span className="bg-[#ede2d5] text-[#6d4c38] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#d9c7b5]">
+                  <span className="bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
                     Resmi Mağaza ✓
                   </span>
                 </div>
 
                 {store.tagline && (
-                  <p className="text-xs sm:text-sm text-[#786c64]">
+                  <p className="text-xs sm:text-sm text-[#78695e]">
                     {store.tagline}
                   </p>
                 )}
@@ -444,13 +444,13 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     href={`https://instagram.com/${store.instagramHandle}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 font-semibold text-[#8b634d] bg-[#f7f2eb] hover:bg-[#ede5d8] px-2.5 py-1 rounded-full transition border border-[#e4d8c8]"
+                    className="inline-flex items-center gap-1 font-semibold text-[#8c5f4a] bg-[#f7ede5] hover:bg-[#eddcc8] px-2.5 py-1 rounded-full transition border border-[#e5dcce]"
                   >
                     <Instagram className="w-3.5 h-3.5" />@{store.instagramHandle}
                   </a>
 
                   {store.freeShippingThreshold > 0 && (
-                    <span className="inline-flex items-center gap-1 font-medium text-[#47635e] bg-[#edf2ec] px-2.5 py-1 rounded-full border border-[#d6dfd4]">
+                    <span className="inline-flex items-center gap-1 font-medium text-[#415e58] bg-[#edf2eb] px-2.5 py-1 rounded-full border border-[#d4e0d1]">
                       <Truck className="w-3.5 h-3.5" />
                       {formatCurrency(store.freeShippingThreshold)} Üzeri Kargo Bedava
                     </span>
@@ -462,7 +462,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
             {/* Cart Trigger Button */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white font-semibold text-xs sm:text-sm shadow-sm transition cursor-pointer shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[#f7f4ee] font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer shrink-0"
               style={{ backgroundColor: themePrimary }}
             >
               <ShoppingBag className="w-4 h-4" />
@@ -473,9 +473,9 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
             </button>
           </div>
 
-          {/* Instagram Stories / Highlights in Warm Earth Tones */}
+          {/* Instagram Stories / Highlights in Organic Earth Gradient */}
           {store.stories && store.stories.length > 0 && (
-            <div className="pt-2 border-t border-[#f0e9dd]">
+            <div className="pt-2 border-t border-[#f2ece1]">
               <div className="flex items-center gap-4 overflow-x-auto py-2 no-scrollbar">
                 {store.stories.map((st) => (
                   <button
@@ -483,8 +483,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     onClick={() => setActiveStory(st)}
                     className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
                   >
-                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-[#cbb19b] via-[#98ab90] to-[#7a513a] shadow-xs group-hover:scale-105 transition">
-                      <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-[#f4efe8]">
+                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-[#ba9b81] via-[#a3b899] to-[#8c5f4a] shadow-xs group-hover:scale-105 transition">
+                      <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-[#f2ece1]">
                         <img
                           src={st.imageUrl}
                           alt={st.title}
@@ -504,16 +504,16 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       </div>
 
       {/* Sticky Search & Category Bar */}
-      <div className="bg-white/90 backdrop-blur border-b border-[#e8dfcf] sticky top-0 z-20 shadow-xs">
+      <div className="bg-[#f7f4ee]/90 backdrop-blur border-b border-[#e5dcce] sticky top-0 z-20 shadow-xs">
         <div className="max-w-4xl mx-auto px-4 py-3 space-y-2.5">
           <div className="relative">
-            <Search className="w-4 h-4 text-[#9c8e84] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#9e8e82] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Ürün adı veya kod ile ara..."
-              className="w-full pl-10 pr-4 py-2 bg-[#f9f7f2] focus:bg-white border border-[#e2d8c5] focus:border-[#8b634d] rounded-xl text-xs sm:text-sm outline-none transition text-[#312925]"
+              className="w-full pl-10 pr-4 py-2 bg-white focus:bg-white border border-[#e5dcce] focus:border-[#8c5f4a] rounded-xl text-xs sm:text-sm outline-none transition text-[#33261f]"
             />
           </div>
 
@@ -525,7 +525,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   selectedCategory === cat
                     ? 'text-white shadow-xs'
-                    : 'bg-[#f4ece1] text-[#5c4d44] hover:bg-[#eadbc9]'
+                    : 'bg-[#f2ece1] text-[#78695e] hover:bg-[#eae3d6]'
                 }`}
                 style={
                   selectedCategory === cat
@@ -543,10 +543,10 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       {/* Product Feed Grid */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         {visibleProducts.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-[#e8dfcf] p-12 text-center shadow-xs">
+          <div className="bg-white rounded-3xl border border-[#e5dcce] p-12 text-center shadow-xs">
             <ShoppingBag className="w-12 h-12 text-[#cfbeab] mx-auto mb-3" />
-            <h2 className="text-base font-bold text-[#312925]">Ürün Bulunamadı</h2>
-            <p className="text-xs text-[#8a7c73] mt-1">
+            <h2 className="text-base font-bold text-[#33261f]">Ürün Bulunamadı</h2>
+            <p className="text-xs text-[#78695e] mt-1">
               Arama kriterlerinize uygun ürün bulunamadı.
             </p>
           </div>
@@ -585,10 +585,10 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-3xl border border-[#e8dfcf] overflow-hidden shadow-xs hover:border-[#cfbeab] transition flex flex-col justify-between group"
+                  className="bg-white rounded-3xl border border-[#e5dcce] overflow-hidden shadow-xs hover:border-[#ba9b81] transition flex flex-col justify-between group"
                 >
                   {/* Photo Container */}
-                  <div className="relative aspect-3/4 bg-[#f4efe8] overflow-hidden">
+                  <div className="relative aspect-3/4 bg-[#f2ece1] overflow-hidden">
                     <img
                       src={product.imageUrl}
                       alt={product.name}
@@ -596,14 +596,14 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     />
 
                     {discountPercent && (
-                      <span className="absolute top-2.5 left-2.5 bg-[#8b634d] text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow-xs">
+                      <span className="absolute top-2.5 left-2.5 bg-[#8c5f4a] text-[#f7f4ee] font-bold text-[10px] px-2 py-0.5 rounded-full shadow-xs">
                         %{discountPercent} İndirim
                       </span>
                     )}
 
                     {isOutOfStock && (
-                      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
-                        <span className="bg-white text-[#312925] font-bold text-xs px-3 py-1.5 rounded-full shadow-md">
+                      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center">
+                        <span className="bg-white text-[#33261f] font-bold text-xs px-3 py-1.5 rounded-full shadow-md">
                           Tükendi
                         </span>
                       </div>
@@ -613,20 +613,20 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                   {/* Card Content */}
                   <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5">
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-[#8a7c73] tracking-wider">
+                      <p className="text-[10px] uppercase font-bold text-[#9e8e82] tracking-wider">
                         {product.category}
                       </p>
-                      <h3 className="font-bold text-xs sm:text-sm text-[#312925] line-clamp-2 leading-snug mt-0.5">
+                      <h3 className="font-bold text-xs sm:text-sm text-[#33261f] line-clamp-2 leading-snug mt-0.5">
                         {product.name}
                       </h3>
 
                       {/* Price Block */}
                       <div className="mt-2 flex items-baseline gap-1.5">
-                        <span className="text-base sm:text-lg font-bold text-[#312925]">
+                        <span className="text-base sm:text-lg font-bold text-[#33261f]">
                           {formatCurrency(effectivePrice)}
                         </span>
                         {product.compareAtPrice && product.compareAtPrice > effectivePrice && (
-                          <span className="text-xs text-[#9c8e84] line-through">
+                          <span className="text-xs text-[#9e8e82] line-through">
                             {formatCurrency(product.compareAtPrice)}
                           </span>
                         )}
@@ -651,10 +651,10 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                                   }
                                   className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer ${
                                     isSelected
-                                      ? 'bg-[#3c302a] border-[#3c302a] text-white'
+                                      ? 'bg-[#3e312b] border-[#3e312b] text-white'
                                       : noStock
-                                      ? 'bg-[#f4ece1] border-[#e8dfcf] text-[#a89c92] line-through'
-                                      : 'bg-white border-[#e2d8c5] text-[#5c4d44] hover:border-[#b39b83]'
+                                      ? 'bg-[#f2ece1] border-[#e5dcce] text-[#9e8e82] line-through'
+                                      : 'bg-white border-[#e5dcce] text-[#78695e] hover:border-[#8c5f4a]'
                                   }`}
                                 >
                                   {v.name}
@@ -666,18 +666,18 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                       )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="pt-2 border-t border-[#f0e9dd] space-y-1.5">
+                    {/* Actions in Earth Tones */}
+                    <div className="pt-2 border-t border-[#f2ece1] space-y-1.5">
                       <button
                         type="button"
                         disabled={isOutOfStock}
                         onClick={() => addToCart(product)}
                         className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs ${
                           justAddedId === product.id
-                            ? 'bg-[#47635e] text-white'
+                            ? 'bg-[#415e58] text-white'
                             : isOutOfStock
-                            ? 'bg-[#f4ece1] text-[#a89c92] cursor-not-allowed'
-                            : 'text-white hover:opacity-95'
+                            ? 'bg-[#f2ece1] text-[#9e8e82] cursor-not-allowed'
+                            : 'text-[#f7f4ee] hover:opacity-95'
                         }`}
                         style={
                           justAddedId === product.id || isOutOfStock
@@ -702,7 +702,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                         href={whatsappAskUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="w-full py-1.5 px-2 rounded-xl text-[11px] font-semibold text-[#47635e] bg-[#edf2ec] hover:bg-[#e2ebe0] flex items-center justify-center gap-1 transition border border-[#d6dfd4]"
+                        className="w-full py-1.5 px-2 rounded-xl text-[11px] font-semibold text-[#415e58] bg-[#edf2eb] hover:bg-[#e4ede2] flex items-center justify-center gap-1 transition border border-[#d4e0d1]"
                       >
                         <MessageCircle className="w-3 h-3" /> WhatsApp&apos;tan Sor
                       </a>
@@ -720,19 +720,19 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         <div className="fixed bottom-4 inset-x-4 max-w-md mx-auto z-40">
           <button
             onClick={() => setIsCartOpen(true)}
-            className="w-full text-white p-4 rounded-3xl shadow-xl flex items-center justify-between transition cursor-pointer hover:scale-[1.01]"
+            className="w-full text-[#f7f4ee] p-4 rounded-3xl shadow-xl flex items-center justify-between transition cursor-pointer hover:scale-[1.01]"
             style={{ backgroundColor: themePrimary }}
           >
             <div className="flex items-center gap-3">
-              <div className="bg-[#f7f4ee] text-[#312925] font-bold text-xs w-7 h-7 rounded-full flex items-center justify-center">
+              <div className="bg-[#f7f4ee] text-[#33261f] font-bold text-xs w-7 h-7 rounded-full flex items-center justify-center">
                 {totalItemsCount}
               </div>
               <div className="text-left">
-                <p className="text-[11px] text-[#e8dfcf]">Sepet Toplamı</p>
+                <p className="text-[11px] text-[#e5dcce]">Sepet Toplamı</p>
                 <p className="text-sm font-bold text-white">{formatCurrency(totalAmount)}</p>
               </div>
             </div>
-            <span className="bg-[#f7f4ee] text-[#312925] px-4 py-2 rounded-2xl text-xs font-bold shadow-xs">
+            <span className="bg-[#f7f4ee] text-[#33261f] px-4 py-2 rounded-2xl text-xs font-bold shadow-xs">
               Siparişi Tamamla →
             </span>
           </button>
@@ -742,7 +742,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       {/* Story View Modal */}
       {activeStory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative max-w-sm w-full bg-[#2b221d] rounded-3xl overflow-hidden shadow-2xl border border-[#4a3a31]">
+          <div className="relative max-w-sm w-full bg-[#2b221d] rounded-3xl overflow-hidden shadow-2xl border border-[#3e312b]">
             <button
               onClick={() => setActiveStory(null)}
               className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black cursor-pointer"
@@ -771,16 +771,16 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs">
           <div className="bg-white w-full max-w-lg h-full flex flex-col shadow-2xl overflow-hidden">
             {/* Drawer Header */}
-            <div className="px-5 py-4 border-b border-[#e8dfcf] flex items-center justify-between bg-[#fbf9f5]">
+            <div className="px-5 py-4 border-b border-[#e5dcce] flex items-center justify-between bg-[#f7f4ee]">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-[#312925]" />
-                <h2 className="font-bold text-[#312925] text-base">
+                <ShoppingBag className="w-5 h-5 text-[#33261f]" />
+                <h2 className="font-bold text-[#33261f] text-base">
                   Sepetim ({totalItemsCount} Ürün)
                 </h2>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="p-1.5 rounded-lg text-[#8a7c73] hover:bg-[#ede5d8] cursor-pointer"
+                className="p-1.5 rounded-lg text-[#78695e] hover:bg-[#eae3d6] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -788,10 +788,10 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
 
             {/* Free Shipping Progress */}
             {store.freeShippingThreshold > 0 && deliveryType === 'SHIPPING' && cart.length > 0 && (
-              <div className="bg-[#edf2ec] border-b border-[#d6dfd4] px-5 py-2.5 text-xs text-[#47635e] font-medium">
+              <div className="bg-[#edf2eb] border-b border-[#d4e0d1] px-5 py-2.5 text-xs text-[#415e58] font-medium">
                 {subtotal >= store.freeShippingThreshold ? (
                   <p className="flex items-center gap-1.5 font-semibold">
-                    <Sparkles className="w-4 h-4 text-[#47635e]" />
+                    <Sparkles className="w-4 h-4 text-[#415e58]" />
                     Tebrikler! Ücretsiz kargo limitine ulaştınız.
                   </p>
                 ) : (
@@ -801,9 +801,9 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                       <strong>{formatCurrency(store.freeShippingThreshold - subtotal)}</strong>{' '}
                       daha ürün ekleyebilirsiniz.
                     </p>
-                    <div className="w-full h-1.5 bg-[#d6dfd4] rounded-full mt-1.5 overflow-hidden">
+                    <div className="w-full h-1.5 bg-[#d4e0d1] rounded-full mt-1.5 overflow-hidden">
                       <div
-                        className="h-full bg-[#47635e] rounded-full transition-all"
+                        className="h-full bg-[#415e58] rounded-full transition-all"
                         style={{
                           width: `${Math.min(
                             100,
@@ -822,8 +822,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               {cart.length === 0 ? (
                 <div className="text-center py-16">
                   <ShoppingBag className="w-12 h-12 text-[#cfbeab] mx-auto mb-3" />
-                  <p className="text-[#312925] font-bold">Sepetiniz boş</p>
-                  <p className="text-xs text-[#8a7c73] mt-1">
+                  <p className="text-[#33261f] font-bold">Sepetiniz boş</p>
+                  <p className="text-xs text-[#78695e] mt-1">
                     Ürünleri ekleyip WhatsApp veya DM ile kolayca sipariş verebilirsiniz.
                   </p>
                 </div>
@@ -834,32 +834,32 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     {cart.map((item) => (
                       <div
                         key={item.cartItemId}
-                        className="flex items-center gap-3 p-3 rounded-2xl border border-[#e8dfcf] bg-[#fbf9f5]"
+                        className="flex items-center gap-3 p-3 rounded-2xl border border-[#e5dcce] bg-[#f7f4ee]/60"
                       >
                         <img
                           src={item.imageUrl}
                           alt={item.productName}
-                          className="w-16 h-16 rounded-xl object-cover bg-white shrink-0 border border-[#e8dfcf]"
+                          className="w-16 h-16 rounded-xl object-cover bg-white shrink-0 border border-[#e5dcce]"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-xs sm:text-sm text-[#312925] truncate">
+                          <h4 className="font-bold text-xs sm:text-sm text-[#33261f] truncate">
                             {item.productName}
                           </h4>
                           {item.variantName && (
-                            <p className="text-xs text-[#786c64]">
+                            <p className="text-xs text-[#78695e]">
                               Seçenek: {item.variantName}
                             </p>
                           )}
-                          <p className="text-xs font-bold text-[#312925] mt-1">
+                          <p className="text-xs font-bold text-[#33261f] mt-1">
                             {formatCurrency(item.unitPrice * item.quantity)}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-1 bg-white border border-[#e2d8c5] rounded-xl p-1">
+                        <div className="flex items-center gap-1 bg-white border border-[#e5dcce] rounded-xl p-1">
                           <button
                             type="button"
                             onClick={() => updateCartQty(item.cartItemId, -1)}
-                            className="p-1 text-[#786c64] hover:text-[#9e3a2b] cursor-pointer"
+                            className="p-1 text-[#78695e] hover:text-[#783e35] cursor-pointer"
                           >
                             {item.quantity === 1 ? (
                               <Trash2 className="w-3.5 h-3.5" />
@@ -867,13 +867,13 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                               <Minus className="w-3.5 h-3.5" />
                             )}
                           </button>
-                          <span className="text-xs font-bold w-5 text-center text-[#312925]">
+                          <span className="text-xs font-bold w-5 text-center text-[#33261f]">
                             {item.quantity}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateCartQty(item.cartItemId, 1)}
-                            className="p-1 text-[#786c64] hover:text-[#312925] cursor-pointer"
+                            className="p-1 text-[#78695e] hover:text-[#33261f] cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
@@ -883,8 +883,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                   </div>
 
                   {/* Delivery & Form */}
-                  <div className="space-y-4 pt-2 border-t border-[#ede5d8]">
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-[#786c64]">
+                  <div className="space-y-4 pt-2 border-t border-[#e5dcce]">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-[#78695e]">
                       1. Teslimat Yöntemi
                     </h3>
                     <div className="grid grid-cols-2 gap-2.5">
@@ -898,8 +898,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                         }}
                         className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                           deliveryType === 'SHIPPING'
-                            ? 'border-[#3c302a] bg-[#3c302a] text-white'
-                            : 'border-[#e2d8c5] bg-white text-[#5c4d44]'
+                            ? 'border-[#3e312b] bg-[#3e312b] text-white'
+                            : 'border-[#e5dcce] bg-white text-[#78695e]'
                         }`}
                       >
                         <div className="flex items-center gap-1.5 font-bold text-xs">
@@ -922,8 +922,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           }}
                           className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                             deliveryType === 'STORE_PICKUP'
-                              ? 'border-[#3c302a] bg-[#3c302a] text-white'
-                              : 'border-[#e2d8c5] bg-white text-[#5c4d44]'
+                              ? 'border-[#3e312b] bg-[#3e312b] text-white'
+                              : 'border-[#e5dcce] bg-white text-[#78695e]'
                           }`}
                         >
                           <div className="flex items-center gap-1.5 font-bold text-xs">
@@ -935,7 +935,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                       )}
                     </div>
 
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-[#786c64] pt-2">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-[#78695e] pt-2">
                       2. İletişim & Adres Bilgileri
                     </h3>
 
@@ -950,7 +950,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                           placeholder="Örn: Zeynep Kaya"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8b634d] outline-none text-[#312925]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8c5f4a] outline-none text-[#33261f]"
                         />
                       </div>
 
@@ -964,7 +964,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
                           placeholder="05XX XXX XX XX"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8b634d] outline-none text-[#312925]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8c5f4a] outline-none text-[#33261f]"
                         />
                       </div>
 
@@ -979,7 +979,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                             value={customerAddress}
                             onChange={(e) => setCustomerAddress(e.target.value)}
                             placeholder="Mahalle, sokak, bina no, ilçe/il"
-                            className="w-full px-3.5 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8b634d] outline-none text-[#312925]"
+                            className="w-full px-3.5 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8c5f4a] outline-none text-[#33261f]"
                           />
                         </div>
                       )}
@@ -998,7 +998,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                                 | 'PAY_AT_STORE'
                             )
                           }
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8b634d] outline-none text-[#312925]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8c5f4a] outline-none text-[#33261f]"
                         >
                           <option value="IBAN_TRANSFER">Havale / EFT (IBAN)</option>
                           <option value="CASH_ON_DELIVERY">Kapıda Nakit / Kart</option>
@@ -1017,35 +1017,35 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           value={note}
                           onChange={(e) => setNote(e.target.value)}
                           placeholder="Örn: Hediye paketi rica ediyorum"
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#e2d8c5] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8b634d] outline-none text-[#312925]"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm focus:border-[#8c5f4a] outline-none text-[#33261f]"
                         />
                       </div>
                     </div>
 
                     {/* Summary Box */}
-                    <div className="bg-[#f9f7f2] rounded-2xl p-4 border border-[#ede5d8] space-y-2 text-xs">
-                      <div className="flex justify-between text-[#786c64]">
+                    <div className="bg-[#f2ece1] rounded-2xl p-4 border border-[#e5dcce] space-y-2 text-xs">
+                      <div className="flex justify-between text-[#78695e]">
                         <span>Ara Toplam</span>
                         <span>{formatCurrency(subtotal)}</span>
                       </div>
-                      <div className="flex justify-between text-[#786c64]">
+                      <div className="flex justify-between text-[#78695e]">
                         <span>Kargo</span>
                         <span>
                           {shippingCost === 0 ? (
-                            <strong className="text-[#47635e]">Ücretsiz</strong>
+                            <strong className="text-[#415e58]">Ücretsiz</strong>
                           ) : (
                             formatCurrency(shippingCost)
                           )}
                         </span>
                       </div>
-                      <div className="flex justify-between font-bold text-[#312925] text-sm pt-2 border-t border-[#ede5d8]">
+                      <div className="flex justify-between font-bold text-[#33261f] text-sm pt-2 border-t border-[#e5dcce]">
                         <span>Toplam Tutar</span>
                         <span>{formatCurrency(totalAmount)}</span>
                       </div>
                     </div>
 
                     {formError && (
-                      <div className="bg-[#faebe8] border border-[#f0c2b8] text-[#8e3c2f] px-3.5 py-2 rounded-xl text-xs font-semibold">
+                      <div className="bg-[#f7ece8] border border-[#edd5cd] text-[#783e35] px-3.5 py-2 rounded-xl text-xs font-semibold">
                         {formError}
                       </div>
                     )}
@@ -1054,14 +1054,14 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               )}
             </div>
 
-            {/* Submit Buttons in Natural Warm Walnut & Sage Tones */}
+            {/* Submit Buttons in Natural Irmak Adaçayı & Tan 155 */}
             {cart.length > 0 && (
-              <div className="p-4 border-t border-[#ede5d8] bg-white space-y-2">
+              <div className="p-4 border-t border-[#e5dcce] bg-white space-y-2">
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleCompleteOrder('WHATSAPP')}
-                  className="w-full py-3.5 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-[#47635e] hover:bg-[#384e4a] text-white flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
+                  className="w-full py-3.5 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-[#415e58] hover:bg-[#344d48] text-[#f7f4ee] flex items-center justify-center gap-2 shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
                   <MessageCircle className="w-4 h-4" />
                   WhatsApp ile Siparişi Gönder
@@ -1071,7 +1071,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleCompleteOrder('INSTAGRAM_DM')}
-                  className="w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-[#8b634d] hover:bg-[#775440] text-white flex items-center justify-center gap-2 shadow-xs transition cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-[#8c5f4a] hover:bg-[#754e3c] text-[#f7f4ee] flex items-center justify-center gap-2 shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
                   <Instagram className="w-4 h-4" />
                   Siparişi Kopyala & Instagram DM Aç
@@ -1085,24 +1085,24 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       {/* Confirmation Modal */}
       {completedOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl space-y-4 border border-[#e8dfcf]">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl space-y-4 border border-[#e5dcce]">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#edf2ec] text-[#47635e] flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-[#edf2eb] text-[#415e58] flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-[#312925] text-base">
+                <h3 className="font-bold text-[#33261f] text-base">
                   Sipariş Alındı ({completedOrderModal.orderNumber})
                 </h3>
-                <p className="text-xs text-[#8a7c73]">
+                <p className="text-xs text-[#78695e]">
                   Mağaza paneline kaydedildi ve hazırlandı.
                 </p>
               </div>
             </div>
 
             {completedOrderModal.channel === 'INSTAGRAM_DM' ? (
-              <div className="bg-[#fbf7f4] border border-[#ecdcd0] rounded-2xl p-3.5 text-xs text-[#6e4439] space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-[#8b634d]">
+              <div className="bg-[#f7ede5] border border-[#e5dcce] rounded-2xl p-3.5 text-xs text-[#783e35] space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-[#8c5f4a]">
                   <Instagram className="w-4 h-4" />
                   Instagram DM Adımı
                 </p>
@@ -1112,7 +1112,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                 </p>
               </div>
             ) : (
-              <div className="bg-[#edf2ec] border border-[#d6dfd4] rounded-2xl p-3.5 text-xs text-[#47635e]">
+              <div className="bg-[#edf2eb] border border-[#d4e0d1] rounded-2xl p-3.5 text-xs text-[#415e58]">
                 Hazır sipariş özetiniz WhatsApp üzerinden satıcıya iletilmek üzere açıldı.
               </div>
             )}
@@ -1124,8 +1124,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                 rel="noreferrer"
                 className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs text-white flex items-center justify-center gap-1.5 ${
                   completedOrderModal.channel === 'WHATSAPP'
-                    ? 'bg-[#47635e] hover:bg-[#384e4a]'
-                    : 'bg-[#8b634d] hover:bg-[#775440]'
+                    ? 'bg-[#415e58] hover:bg-[#344d48]'
+                    : 'bg-[#8c5f4a] hover:bg-[#754e3c]'
                 }`}
               >
                 <ExternalLink className="w-4 h-4" />
@@ -1136,7 +1136,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               <button
                 type="button"
                 onClick={() => setCompletedOrderModal(null)}
-                className="py-3 px-4 rounded-xl font-semibold text-xs bg-[#f4ece1] hover:bg-[#eadbc9] text-[#4a3a31] cursor-pointer"
+                className="py-3 px-4 rounded-xl font-semibold text-xs bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] cursor-pointer"
               >
                 Kapat
               </button>

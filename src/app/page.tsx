@@ -8,23 +8,25 @@ import {
   Layers,
   Palette,
   ArrowRight,
+  Store,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#f7f5f0] text-[#312925] flex flex-col justify-between selection:bg-[#ede2d5] selection:text-[#312925] font-sans">
-      {/* Top Header */}
-      <header className="border-b border-[#e8dfcf] bg-white/85 backdrop-blur sticky top-0 z-30">
+    <div className="min-h-screen bg-[#f7f4ee] text-[#33261f] flex flex-col justify-between font-sans selection:bg-[#eae3d6] selection:text-[#33261f]">
+      {/* Top Header in Clean Linen & Espresso */}
+      <header className="border-b border-[#e5dcce] bg-[#f7f4ee]/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#3c302a] flex items-center justify-center font-bold text-[#f7f4ee] text-sm shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#3e312b] flex items-center justify-center font-bold text-[#f7f4ee] text-sm shadow-xs">
               IS
             </div>
             <div>
-              <span className="font-bold text-base sm:text-lg tracking-tight text-[#312925]">
+              <span className="font-bold text-base sm:text-lg tracking-tight text-[#33261f]">
                 InstaSipariş
               </span>
-              <span className="ml-2 bg-[#ede2d5] text-[#6d4c38] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#d9c7b5]">
+              <span className="ml-2 bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
                 Doğal Butik Platformu
               </span>
             </div>
@@ -33,13 +35,13 @@ export default function HomePage() {
           <div className="flex items-center gap-2.5">
             <Link
               href="/butikmoda"
-              className="text-xs font-semibold px-3.5 py-2 rounded-xl bg-[#f4ece1] hover:bg-[#eadbc9] text-[#4a3a31] transition border border-[#e2d3be]"
+              className="text-xs font-semibold px-3.5 py-2 rounded-xl bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] transition border border-[#e5dcce]"
             >
               Örnek Butik Vitrini
             </Link>
             <Link
               href="/admin"
-              className="text-xs font-semibold px-4 py-2 rounded-xl bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs transition"
+              className="text-xs font-semibold px-4 py-2 rounded-xl bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs transition"
             >
               Yönetici Paneli →
             </Link>
@@ -49,25 +51,25 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <main className="max-w-5xl mx-auto px-4 py-16 text-center space-y-7">
-        <div className="inline-flex items-center gap-2 bg-[#f4ece1] border border-[#e2d8c5] px-4 py-1.5 rounded-full text-xs font-semibold text-[#665345]">
-          <Sparkles className="w-3.5 h-3.5 text-[#8b634d]" />
-          Doğal Tonlar &bull; Instagram Butikleri &bull; Fiziksel Mağazalar
+        <div className="inline-flex items-center gap-2 bg-[#f2ece1] border border-[#e5dcce] px-4 py-1.5 rounded-full text-xs font-semibold text-[#78695e]">
+          <Sparkles className="w-3.5 h-3.5 text-[#8c5f4a]" />
+          Toprak, Keten & Vizon Paletleriyle Lüks Butik Altyapısı
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight max-w-3xl mx-auto text-[#2b221d]">
-          Her Butiğe Sakin, Lüks ve Doğal Renklerle <span className="text-[#8b634d]">Sipariş Kataloğu</span> Kurun
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight max-w-3xl mx-auto text-[#33261f]">
+          Her Butiğe Sakin ve Organik Renklerle <span className="text-[#8c5f4a]">Sipariş Kataloğu</span> Kurun
         </h1>
 
-        <p className="text-[#786c64] text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-          Göz yormayan toprak, keten, vizon ve adaçayı paletleri; telefondan fotoğraflı ürün ekleme,
-          Instagram hikayeleri ve tek tıkla hazır WhatsApp sipariş akışı.
+        <p className="text-[#78695e] text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+          Göz yormayan keten, vizon, adaçayı ve fırınlanmış toprak tonları; telefondan fotoğraflı ürün yükleme,
+          Instagram hikaye halkaları ve tek tıkla hazır WhatsApp sipariş akışı.
         </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
           <Link
             href="/admin"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-[#3c302a] hover:bg-[#2b221d] text-[#f7f4ee] font-semibold text-xs sm:text-sm shadow-sm transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] font-semibold text-xs sm:text-sm shadow-xs transition"
           >
             <Plus className="w-4 h-4" />
             Yeni Bir Dükkana Mağaza Aç (/admin)
@@ -75,76 +77,80 @@ export default function HomePage() {
 
           <Link
             href="/butikmoda"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-[#fbf9f5] text-[#312925] font-semibold text-xs sm:text-sm border border-[#e2d8c5] shadow-xs transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-[#f2ece1] text-[#33261f] font-semibold text-xs sm:text-sm border border-[#e5dcce] shadow-xs transition"
           >
-            <ShoppingBag className="w-4 h-4 text-[#8b634d]" />
+            <ShoppingBag className="w-4 h-4 text-[#8c5f4a]" />
             Müşteri Vitrinini İncele (/butikmoda)
           </Link>
 
           <Link
             href="/butikmoda/panel"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#f4ece1] hover:bg-[#eadbc9] text-[#4a3a31] font-semibold text-xs sm:text-sm border border-[#e2d3be] transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] font-semibold text-xs sm:text-sm border border-[#e5dcce] transition"
           >
-            <Smartphone className="w-4 h-4 text-[#7a513a]" />
+            <Smartphone className="w-4 h-4 text-[#78695e]" />
             Butik Sahibi Paneli (/butikmoda/panel)
           </Link>
         </div>
 
-        {/* Color Palette Cards based on user's interior reference photos */}
+        {/* 4 Palette Showcase from reference images */}
         <div className="pt-8">
-          <p className="text-xs font-semibold text-[#8a7c73] uppercase tracking-wider mb-3">
-            Desteklenen 4 Doğal Butik Renk Paleti
+          <p className="text-xs font-semibold text-[#9e8e82] uppercase tracking-wider mb-3">
+            Desteklenen 4 Doğal İç Mekan ve Butik Renk Paleti
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-left">
-            <div className="bg-white p-3.5 rounded-2xl border border-[#e8dfcf] space-y-2">
-              <div className="flex gap-1">
-                <span className="w-5 h-5 rounded-full bg-[#3c302a]" />
-                <span className="w-5 h-5 rounded-full bg-[#8b634d]" />
-                <span className="w-5 h-5 rounded-full bg-[#be9d83]" />
-                <span className="w-5 h-5 rounded-full bg-[#f7f4ee] border border-[#e8dfcf]" />
+            {/* Natural */}
+            <div className="bg-white p-4 rounded-2xl border border-[#e5dcce] space-y-2.5 shadow-xs">
+              <div className="flex gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-[#3e312b] border border-[#e5dcce]" title="Tan 10" />
+                <span className="w-5 h-5 rounded-full bg-[#8c5f4a]" title="Tan 155" />
+                <span className="w-5 h-5 rounded-full bg-[#ba9b81]" title="Bozkır" />
+                <span className="w-5 h-5 rounded-full bg-[#e7cdbb]" title="Bademi" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#312925]">Natural Palet</p>
-                <p className="text-[10px] text-[#8a7c73]">Keten, Vizon & Espresso</p>
+                <p className="text-xs font-bold text-[#33261f]">Natural Paleti</p>
+                <p className="text-[10px] text-[#78695e]">Keten, Vizon & Espresso</p>
               </div>
             </div>
 
-            <div className="bg-white p-3.5 rounded-2xl border border-[#e8dfcf] space-y-2">
-              <div className="flex gap-1">
-                <span className="w-5 h-5 rounded-full bg-[#47635e]" />
-                <span className="w-5 h-5 rounded-full bg-[#98ab90]" />
-                <span className="w-5 h-5 rounded-full bg-[#cbb19b]" />
-                <span className="w-5 h-5 rounded-full bg-[#f5ece1]" />
+            {/* Okyanus */}
+            <div className="bg-white p-4 rounded-2xl border border-[#e5dcce] space-y-2.5 shadow-xs">
+              <div className="flex gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-[#4f6d67]" title="Irmak 30" />
+                <span className="w-5 h-5 rounded-full bg-[#a3b899]" title="Kaktüs 20" />
+                <span className="w-5 h-5 rounded-full bg-[#cbad8d]" title="Hasır 55" />
+                <span className="w-5 h-5 rounded-full bg-[#f6efe6] border border-[#e5dcce]" title="Hasır 70" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#312925]">Okyanus Palet</p>
-                <p className="text-[10px] text-[#8a7c73]">Adaçayı & Sıcak Hasır</p>
+                <p className="text-xs font-bold text-[#33261f]">Okyanus Paleti</p>
+                <p className="text-[10px] text-[#78695e]">Adaçayı & Sıcak Hasır</p>
               </div>
             </div>
 
-            <div className="bg-white p-3.5 rounded-2xl border border-[#e8dfcf] space-y-2">
-              <div className="flex gap-1">
-                <span className="w-5 h-5 rounded-full bg-[#7a513a]" />
-                <span className="w-5 h-5 rounded-full bg-[#e0834b]" />
-                <span className="w-5 h-5 rounded-full bg-[#ddb5ad]" />
-                <span className="w-5 h-5 rounded-full bg-[#faf2ed]" />
+            {/* Gün Batımı */}
+            <div className="bg-white p-4 rounded-2xl border border-[#e5dcce] space-y-2.5 shadow-xs">
+              <div className="flex gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-[#9f6d4f]" title="Tan 150" />
+                <span className="w-5 h-5 rounded-full bg-[#e8894e]" title="Eylül 125" />
+                <span className="w-5 h-5 rounded-full bg-[#dcb5a8]" title="Kıvılcım 205" />
+                <span className="w-5 h-5 rounded-full bg-[#5e4f4c]" title="Tan 10" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#312925]">Gün Batımı</p>
-                <p className="text-[10px] text-[#8a7c73]">Terakota & Pudra</p>
+                <p className="text-xs font-bold text-[#33261f]">Gün Batımı</p>
+                <p className="text-[10px] text-[#78695e]">Terakota & Pudra</p>
               </div>
             </div>
 
-            <div className="bg-white p-3.5 rounded-2xl border border-[#e8dfcf] space-y-2">
-              <div className="flex gap-1">
-                <span className="w-5 h-5 rounded-full bg-[#245667]" />
-                <span className="w-5 h-5 rounded-full bg-[#c07a3c]" />
-                <span className="w-5 h-5 rounded-full bg-[#6e4439]" />
-                <span className="w-5 h-5 rounded-full bg-[#8da2b3]" />
+            {/* Çöl */}
+            <div className="bg-white p-4 rounded-2xl border border-[#e5dcce] space-y-2.5 shadow-xs">
+              <div className="flex gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-[#2d687a]" title="Irmak 215" />
+                <span className="w-5 h-5 rounded-full bg-[#c78144]" title="Mango 95" />
+                <span className="w-5 h-5 rounded-full bg-[#6d433a]" title="Tan 35" />
+                <span className="w-5 h-5 rounded-full bg-[#8b9fa8]" title="Kozmik 55" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#312925]">Çöl Paleti</p>
-                <p className="text-[10px] text-[#8a7c73]">Petrol & Sıcak Taba</p>
+                <p className="text-xs font-bold text-[#33261f]">Çöl Paleti</p>
+                <p className="text-[10px] text-[#78695e]">Petrol & Sıcak Taba</p>
               </div>
             </div>
           </div>
@@ -152,33 +158,33 @@ export default function HomePage() {
 
         {/* Feature Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-6 text-left">
-          <div className="p-6 rounded-3xl bg-white border border-[#e8dfcf] space-y-2.5 shadow-xs">
-            <div className="w-10 h-10 rounded-2xl bg-[#f4ece1] text-[#7a513a] flex items-center justify-center font-bold">
+          <div className="p-6 rounded-3xl bg-white border border-[#e5dcce] space-y-2.5 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#f2ece1] text-[#8c5f4a] flex items-center justify-center font-bold">
               <Camera className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-[#312925]">Telefondan Fotoğraf Ekleme</h3>
-            <p className="text-xs text-[#786c64] leading-relaxed">
-              Dükkan sahipleri URL ile uğraşmaz. Telefon kamerasını açarak veya galeriden fotoğraf
+            <h3 className="font-bold text-base text-[#33261f]">Telefondan Fotoğraf Yükleme</h3>
+            <p className="text-xs text-[#78695e] leading-relaxed">
+              Dükkan sahipleri URL ile uğraşmaz. Telefonunun kamerasını açarak veya galeriden fotoğraf
               seçip 3 saniyede ürün yükler.
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-white border border-[#e8dfcf] space-y-2.5 shadow-xs">
-            <div className="w-10 h-10 rounded-2xl bg-[#edf2ec] text-[#47635e] flex items-center justify-center font-bold">
+          <div className="p-6 rounded-3xl bg-white border border-[#e5dcce] space-y-2.5 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#edf2eb] text-[#415e58] flex items-center justify-center font-bold">
               <Palette className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-[#312925]">Instagram Hikayeleri (Stories)</h3>
-            <p className="text-xs text-[#786c64] leading-relaxed">
+            <h3 className="font-bold text-base text-[#33261f]">Instagram Hikayeleri (Stories)</h3>
+            <p className="text-xs text-[#78695e] leading-relaxed">
               Vitrinin en üstünde dönen yuvarlak hikaye çemberleri (&quot;Yeni Sezon&quot;, &quot;Kombinler&quot;, &quot;Keten Seri&quot;).
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-white border border-[#e8dfcf] space-y-2.5 shadow-xs">
-            <div className="w-10 h-10 rounded-2xl bg-[#f9f7f2] text-[#3c302a] flex items-center justify-center font-bold">
+          <div className="p-6 rounded-3xl bg-white border border-[#e5dcce] space-y-2.5 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#f2ece1] text-[#3e312b] flex items-center justify-center font-bold">
               <Layers className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base text-[#312925]">Çoklu Mağaza (SaaS) Mimarisi</h3>
-            <p className="text-xs text-[#786c64] leading-relaxed">
+            <h3 className="font-bold text-base text-[#33261f]">Çoklu Mağaza (SaaS) Mimarisi</h3>
+            <p className="text-xs text-[#78695e] leading-relaxed">
               Tek sistemden dilediğiniz kadar butiğe ayrı sayfa açabilir, her birine kendi 4 haneli PIN
               şifresini verip yönetebilirsiniz.
             </p>
@@ -187,7 +193,7 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#e8dfcf] py-6 text-center text-xs text-[#8a7c73] bg-white/50">
+      <footer className="border-t border-[#e5dcce] py-6 text-center text-xs text-[#78695e] bg-white/40">
         InstaSipariş Platformu &bull; Doğal tonlarda Instagram &amp; WhatsApp butik sipariş altyapısı
       </footer>
     </div>
