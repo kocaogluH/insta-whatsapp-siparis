@@ -16,6 +16,9 @@ export default async function StorePage({
   const store = await prisma.store.findUnique({
     where: { slug },
     include: {
+      stories: {
+        orderBy: { orderIndex: 'asc' },
+      },
       products: {
         include: { variants: true },
         orderBy: { createdAt: 'desc' },
@@ -23,7 +26,7 @@ export default async function StorePage({
     },
   });
 
-  if (!store) {
+  if (!store || !store.isActive) {
     notFound();
   }
 

@@ -3,23 +3,95 @@ import { prisma } from './prisma';
 export async function ensureDemoStore() {
   const existing = await prisma.store.findUnique({
     where: { slug: 'butikmoda' },
+    include: { stories: true },
   });
 
-  if (existing) return existing;
+  if (existing) {
+    if (existing.stories.length === 0) {
+      await prisma.story.createMany({
+        data: [
+          {
+            storeId: existing.id,
+            title: '✨ Yeni Sezon',
+            imageUrl:
+              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 1,
+          },
+          {
+            storeId: existing.id,
+            title: '🔥 İndirimler',
+            imageUrl:
+              'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 2,
+          },
+          {
+            storeId: existing.id,
+            title: '👗 Kombinler',
+            imageUrl:
+              'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 3,
+          },
+          {
+            storeId: existing.id,
+            title: '⭐ Müşteriler',
+            imageUrl:
+              'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 4,
+          },
+        ],
+      });
+    }
+    return existing;
+  }
 
   const store = await prisma.store.create({
     data: {
       slug: 'butikmoda',
       name: 'Nişantaşı Butik & Atölye',
+      tagline: 'Yeni Sezon İtalyan Keten & İpek Koleksiyonu',
       description:
-        'Yeni sezon kadın giyim & aksesuar. Hem mağazamızdan gel-al hem Türkiye geneli hızlı kargo!',
+        'Özel tasarım kadın giyim & aksesuar. Mağazamızdan hızlı gel-al veya tüm Türkiye’ye aynı gün kargo!',
+      bannerUrl:
+        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80',
+      logoUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      themeColor: '#0f172a',
       whatsappPhone: '905551234567',
       instagramHandle: 'nisantasibutik.demo',
       shippingFee: 59.9,
       freeShippingThreshold: 1000.0,
       address: 'Teşvikiye Mah. Valikonağı Cad. No:42 Şişli/İstanbul',
       allowStorePickup: true,
+      pinCode: '1234',
       ibanInfo: 'TR12 0006 2000 0000 0123 4567 89 (Nişantaşı Butik Tekstil)',
+      stories: {
+        create: [
+          {
+            title: '✨ Yeni Sezon',
+            imageUrl:
+              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 1,
+          },
+          {
+            title: '🔥 İndirimler',
+            imageUrl:
+              'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 2,
+          },
+          {
+            title: '👗 Kombinler',
+            imageUrl:
+              'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 3,
+          },
+          {
+            title: '⭐ Müşteriler',
+            imageUrl:
+              'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=400&q=80',
+            orderIndex: 4,
+          },
+        ],
+      },
     },
   });
 
@@ -112,7 +184,7 @@ export async function ensureDemoStore() {
       name: 'Yüksek Bel Palazzo Pantolon',
       description: 'Akışkan krep kumaş, tam kalıp yüksek bel kesim.',
       price: 780.0,
-      compareAtPrice: null,
+      compareAtPrice: 990.0,
       imageUrl:
         'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=80',
       category: 'Alt Giyim',
@@ -136,13 +208,6 @@ export async function ensureDemoStore() {
             barcode: '8690001003032',
             priceDiff: 0,
             stock: 6,
-          },
-          {
-            name: '40 Beden / Siyah',
-            sku: 'PLT-PLZ-019-40',
-            barcode: '8690001003049',
-            priceDiff: 0,
-            stock: 0,
           },
         ],
       },
@@ -174,37 +239,6 @@ export async function ensureDemoStore() {
             barcode: '8690001001038',
             quantity: 2,
             unitPrice: 649.9,
-          },
-        ],
-      },
-    },
-  });
-
-  await prisma.order.create({
-    data: {
-      orderNumber: 'SIP-1002',
-      storeId: store.id,
-      customerName: 'Elif Demir',
-      customerPhone: '0544 111 22 33',
-      customerAddress: 'Mağazadan Teslim (Gel-Al)',
-      deliveryType: 'STORE_PICKUP',
-      paymentMethod: 'PAY_AT_STORE',
-      channel: 'INSTAGRAM_DM',
-      subtotal: 1290.0,
-      shippingCost: 0,
-      totalAmount: 1290.0,
-      status: 'PREPARING',
-      note: 'Cumartesi saat 15:00 gibi dükkandan teslim alacağım.',
-      items: {
-        create: [
-          {
-            productId: p2.id,
-            productName: p2.name,
-            variantName: 'Taba',
-            sku: 'CNT-DR-042-TB',
-            barcode: '8690001002028',
-            quantity: 1,
-            unitPrice: 1290.0,
           },
         ],
       },

@@ -19,7 +19,8 @@ import {
   Sparkles,
   X,
   Settings,
-  Barcode,
+  Heart,
+  Share2,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -27,6 +28,13 @@ import {
   buildOrderMessage,
   buildProductQuestionWhatsAppUrl,
 } from '@/lib/format';
+
+export interface StoryType {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string | null;
+}
 
 export interface VariantType {
   id: string;
@@ -58,7 +66,11 @@ export interface StoreType {
   id: string;
   slug: string;
   name: string;
+  tagline: string | null;
   description: string | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  themeColor: string;
   whatsappPhone: string;
   instagramHandle: string;
   shippingFee: number;
@@ -66,6 +78,7 @@ export interface StoreType {
   address: string | null;
   allowStorePickup: boolean;
   ibanInfo: string | null;
+  stories: StoryType[];
   products: ProductType[];
 }
 
@@ -91,6 +104,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
+  const [activeStory, setActiveStory] = useState<StoryType | null>(null);
 
   // Checkout Form State
   const [customerName, setCustomerName] = useState('');
@@ -104,7 +118,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Completed Order Modal State (for IG DM copy & WhatsApp confirmation)
+  // Completed Order Modal State
   const [completedOrderModal, setCompletedOrderModal] = useState<{
     orderNumber: string;
     channel: 'WHATSAPP' | 'INSTAGRAM_DM';
@@ -113,7 +127,6 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     copied: boolean;
   } | null>(null);
 
-  // Initialize default selected variants and load cart from localStorage
   useEffect(() => {
     const initialVars: Record<string, string> = {};
     store.products.forEach((p) => {
@@ -130,7 +143,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         setCart(JSON.parse(saved));
       }
     } catch (e) {
-      console.error('Failed to read cart from localStorage', e);
+      console.error(e);
     }
   }, [store.products, storageKey]);
 
@@ -138,7 +151,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     try {
       localStorage.setItem(storageKey, JSON.stringify(cart));
     } catch (e) {
-      console.error('Failed to save cart to localStorage', e);
+      console.error(e);
     }
   }, [cart, storageKey]);
 
@@ -157,11 +170,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       if (selectedCategory !== 'Tümü' && p.category !== selectedCategory) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchName = p.name.toLowerCase().includes(q);
-        const matchSku = p.sku?.toLowerCase().includes(q);
-        const matchBarcode = p.barcode?.toLowerCase().includes(q);
-        const matchIg = p.instagramPostUrl?.toLowerCase().includes(q);
-        return matchName || matchSku || matchBarcode || matchIg;
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.sku?.toLowerCase().includes(q) ||
+          p.barcode?.toLowerCase().includes(q)
+        );
       }
       return true;
     });
@@ -289,9 +302,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error('Sipariş kaydedilemedi');
-      }
+      if (!res.ok) throw new Error('Sipariş kaydedilemedi');
 
       const savedOrder = await res.json();
 
@@ -349,65 +360,107 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     }
   };
 
+  const themeStyle = {
+    '--theme-color': store.themeColor || '#0f172a',
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      {/* Top Demo Bar for easy switching between Storefront & Seller Panel */}
-      <div className="bg-slate-900 text-slate-200 text-xs py-2 px-4">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+    <div
+      style={themeStyle}
+      className="min-h-screen bg-[#fafaf9] text-slate-900 pb-28 font-sans selection:bg-rose-100 selection:text-rose-900"
+    >
+      {/* Top Demo Bar */}
+      <div className="bg-slate-950 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>
-              Canlı Mağaza Vitrini: <strong className="text-white">/{store.slug}</strong> (Instagram Bio Linki)
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-medium">
+              Canlı Instagram Bio Kataloğu: <strong className="text-white">/{store.slug}</strong>
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
-              href="/panel"
-              className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-md font-medium transition"
+              href={`/${store.slug}/panel`}
+              className="text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 px-2.5 py-1 rounded-lg border border-amber-400/20 transition"
             >
-              <Settings className="w-3.5 h-3.5" />
-              Satıcı Paneli & Barkod Stok
+              Mağaza Satıcı Paneli →
+            </Link>
+            <Link
+              href="/admin"
+              className="text-xs text-slate-400 hover:text-white transition"
+            >
+              Süper Admin
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Store Bio Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shrink-0">
-                <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center font-bold text-xl text-rose-600">
-                  {store.name.slice(0, 2).toUpperCase()}
-                </div>
+      {/* Luxury Boutique Hero Header */}
+      <div className="relative bg-white border-b border-slate-200">
+        {/* Banner Cover Image */}
+        <div className="h-36 sm:h-52 w-full bg-slate-900 relative overflow-hidden">
+          {store.bannerUrl ? (
+            <img
+              src={store.bannerUrl}
+              alt={store.name}
+              className="w-full h-full object-cover opacity-80"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        </div>
+
+        {/* Store Avatar & Profile Info */}
+        <div className="max-w-4xl mx-auto px-4 pb-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between -mt-14 sm:-mt-16 gap-3 sm:gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 text-center sm:text-left">
+              {/* Circular Boutique Logo */}
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden shrink-0 relative">
+                {store.logoUrl ? (
+                  <img
+                    src={store.logoUrl}
+                    alt={store.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center font-black text-2xl text-white"
+                    style={{ backgroundColor: store.themeColor }}
+                  >
+                    {store.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
-                  {store.name}
-                </h1>
-                {store.description && (
-                  <p className="text-xs sm:text-sm text-slate-600 mt-0.5 line-clamp-2 max-w-xl">
-                    {store.description}
+
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {store.name}
+                  </h1>
+                  <span className="bg-rose-50 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-200">
+                    Resmi Mağaza ✓
+                  </span>
+                </div>
+
+                {store.tagline && (
+                  <p className="text-xs sm:text-sm font-medium text-slate-600">
+                    {store.tagline}
                   </p>
                 )}
-                <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs pt-1">
                   <a
                     href={`https://instagram.com/${store.instagramHandle}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-pink-600 bg-pink-50 hover:bg-pink-100 px-2 py-0.5 rounded-full font-medium transition"
+                    className="inline-flex items-center gap-1 font-bold text-pink-600 bg-pink-50 hover:bg-pink-100 px-2.5 py-1 rounded-full transition"
                   >
                     <Instagram className="w-3.5 h-3.5" />@{store.instagramHandle}
                   </a>
-                  {store.allowStorePickup && store.address && (
-                    <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                      <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                      Mağazadan Gel-Al Aktif
-                    </span>
-                  )}
+
                   {store.freeShippingThreshold > 0 && (
-                    <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                    <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
                       <Truck className="w-3.5 h-3.5" />
                       {formatCurrency(store.freeShippingThreshold)} Üzeri Kargo Bedava
                     </span>
@@ -416,63 +469,99 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               </div>
             </div>
 
-            {/* Cart Button */}
+            {/* Cart Trigger Button */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2.5 rounded-xl font-medium text-sm shadow-xs transition shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white font-bold text-sm shadow-lg transition cursor-pointer shrink-0"
+              style={{ backgroundColor: store.themeColor }}
             >
               <ShoppingBag className="w-4 h-4" />
-              <span className="hidden sm:inline">Sepetim</span>
-              <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              <span>Sepet</span>
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-black">
                 {totalItemsCount}
               </span>
             </button>
           </div>
 
-          {/* Search & Category Filter Bar */}
-          <div className="mt-4 flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Ürün adı, stok kodu (SKU) veya IG post linki ile ara..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-100 focus:bg-white border border-transparent focus:border-slate-300 rounded-xl text-sm outline-none transition"
-              />
+          {/* Instagram Stories / Highlights Circular Row */}
+          {store.stories && store.stories.length > 0 && (
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-4 overflow-x-auto py-2 no-scrollbar">
+                {store.stories.map((st) => (
+                  <button
+                    key={st.id}
+                    onClick={() => setActiveStory(st)}
+                    className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
+                  >
+                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-sm group-hover:scale-105 transition">
+                      <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-slate-100">
+                        <img
+                          src={st.imageUrl}
+                          alt={st.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-800 max-w-[70px] truncate text-center">
+                      {st.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+        </div>
+      </div>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+      {/* Sticky Search & Category Bar */}
+      <div className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-20 shadow-xs">
+        <div className="max-w-4xl mx-auto px-4 py-3 space-y-2.5">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Ürün adı, beden veya kod ile ara..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-100 focus:bg-white border border-transparent focus:border-slate-300 rounded-xl text-xs sm:text-sm outline-none transition"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+                style={
+                  selectedCategory === cat
+                    ? { backgroundColor: store.themeColor }
+                    : undefined
+                }
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Product Grid */}
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      {/* Product Feed Grid */}
+      <main className="max-w-4xl mx-auto px-4 py-6">
         {visibleProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-            <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h2 className="text-base font-semibold text-slate-800">Ürün Bulunamadı</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Arama kriterlerinize uygun veya stokta olan ürün bulunmuyor.
+          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+            <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h2 className="text-base font-bold text-slate-800">Ürün Bulunamadı</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Arama kriterlerinize uygun ürün bulunamadı.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
             {visibleProducts.map((product) => {
               const hasVariants = product.variants && product.variants.length > 0;
               const chosenVarId = selectedVariants[product.id];
@@ -486,6 +575,15 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               const isOutOfStock = availableStock <= 0;
               const effectiveSku = currentVariant?.sku || product.sku;
 
+              const discountPercent =
+                product.compareAtPrice && product.compareAtPrice > effectivePrice
+                  ? Math.round(
+                      ((product.compareAtPrice - effectivePrice) /
+                        product.compareAtPrice) *
+                        100
+                    )
+                  : null;
+
               const whatsappAskUrl = buildProductQuestionWhatsAppUrl(
                 store.whatsappPhone,
                 product.name,
@@ -497,72 +595,44 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               return (
                 <div
                   key={product.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col"
+                  className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between group"
                 >
-                  {/* Image Container */}
-                  <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">
+                  {/* Photo Container */}
+                  <div className="relative aspect-3/4 bg-slate-100 overflow-hidden">
                     <img
                       src={product.imageUrl}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-103 transition duration-300"
                     />
-                    <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
-                      <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full">
-                        {product.category}
-                      </span>
-                      {product.compareAtPrice && product.compareAtPrice > effectivePrice && (
-                        <span className="bg-rose-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                          İndirim
-                        </span>
-                      )}
-                    </div>
 
-                    {product.instagramPostUrl && (
-                      <a
-                        href={product.instagramPostUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Instagram paylaşımını gör"
-                        className="absolute top-2.5 right-2.5 bg-white/90 hover:bg-white text-pink-600 text-[11px] font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 shadow-xs transition"
-                      >
-                        <Instagram className="w-3 h-3" />
-                        Reels / Post
-                      </a>
+                    {discountPercent && (
+                      <span className="absolute top-2.5 left-2.5 bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm">
+                        %{discountPercent} İndirim
+                      </span>
                     )}
 
                     {isOutOfStock && (
-                      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center">
-                        <span className="bg-white text-slate-900 font-bold text-xs px-3 py-1.5 rounded-full shadow-sm">
-                          Stokta Kalmadı
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                        <span className="bg-white text-slate-950 font-black text-xs px-3 py-1.5 rounded-full shadow-lg">
+                          Tükendi
                         </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Product Details */}
-                  <div className="p-4 flex-1 flex flex-col justify-between">
+                  {/* Card Content */}
+                  <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5">
                     <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-bold text-slate-900 text-base leading-snug">
-                          {product.name}
-                        </h3>
-                      </div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        {product.category}
+                      </p>
+                      <h3 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-2 leading-snug mt-0.5">
+                        {product.name}
+                      </h3>
 
-                      {effectiveSku && (
-                        <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                          Kod: {effectiveSku}
-                        </p>
-                      )}
-
-                      {product.description && (
-                        <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">
-                          {product.description}
-                        </p>
-                      )}
-
-                      {/* Price */}
-                      <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-lg font-extrabold text-slate-900">
+                      {/* Price Block */}
+                      <div className="mt-2 flex items-baseline gap-1.5">
+                        <span className="text-base sm:text-lg font-black text-slate-900">
                           {formatCurrency(effectivePrice)}
                         </span>
                         {product.compareAtPrice && product.compareAtPrice > effectivePrice && (
@@ -570,18 +640,12 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                             {formatCurrency(product.compareAtPrice)}
                           </span>
                         )}
-                        <span className="ml-auto text-[11px] font-medium text-slate-500">
-                          {availableStock > 0 ? `Stok: ${availableStock} adet` : 'Tükendi'}
-                        </span>
                       </div>
 
-                      {/* Variants Selector */}
+                      {/* Variant Selector Pills */}
                       {hasVariants && (
-                        <div className="mt-3">
-                          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                            Seçenek / Beden:
-                          </label>
-                          <div className="flex flex-wrap gap-1.5">
+                        <div className="mt-2">
+                          <div className="flex flex-wrap gap-1">
                             {product.variants.map((v) => {
                               const isSelected = currentVariant?.id === v.id;
                               const noStock = v.stock <= 0;
@@ -595,15 +659,15 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                                       [product.id]: v.id,
                                     }))
                                   }
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition cursor-pointer ${
+                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
                                     isSelected
-                                      ? 'border-slate-900 bg-slate-900 text-white'
+                                      ? 'bg-slate-950 border-slate-950 text-white'
                                       : noStock
-                                      ? 'border-slate-200 bg-slate-50 text-slate-400 line-through'
-                                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'
+                                      ? 'bg-slate-100 border-slate-200 text-slate-400 line-through'
+                                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
                                   }`}
                                 >
-                                  {v.name} {v.stock > 0 ? `(${v.stock})` : '(Tükendi)'}
+                                  {v.name}
                                 </button>
                               );
                             })}
@@ -612,44 +676,45 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                       )}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2">
+                    {/* Actions */}
+                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
                       <button
                         type="button"
                         disabled={isOutOfStock}
                         onClick={() => addToCart(product)}
-                        className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition cursor-pointer ${
+                        className={`w-full py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs ${
                           justAddedId === product.id
                             ? 'bg-emerald-600 text-white'
                             : isOutOfStock
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                            : 'bg-slate-900 hover:bg-slate-800 text-white'
+                            : 'text-white hover:opacity-90'
                         }`}
+                        style={
+                          justAddedId === product.id || isOutOfStock
+                            ? undefined
+                            : { backgroundColor: store.themeColor }
+                        }
                       >
                         {justAddedId === product.id ? (
                           <>
-                            <CheckCircle2 className="w-4 h-4" />
-                            Sepete Eklendi!
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Eklendi!
                           </>
                         ) : isOutOfStock ? (
-                          'Bu Seçenek Tükendi'
+                          'Tükendi'
                         ) : (
                           <>
-                            <ShoppingBag className="w-4 h-4" />
-                            Sepete Ekle
+                            <ShoppingBag className="w-3.5 h-3.5" /> Sepete Ekle
                           </>
                         )}
                       </button>
 
-                      {/* Direct "WhatsApp'tan Sor" button */}
                       <a
                         href={whatsappAskUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="w-full py-2 px-3 rounded-xl font-medium text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center gap-1.5 transition"
+                        className="w-full py-1.5 px-2 rounded-xl text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center gap-1 transition"
                       >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        Bu Ürünü WhatsApp&apos;tan Sor
+                        <MessageCircle className="w-3 h-3" /> WhatsApp&apos;tan Sor
                       </a>
                     </div>
                   </div>
@@ -660,44 +725,72 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         )}
       </main>
 
-      {/* Sticky Mobile Bottom Cart Bar */}
+      {/* Floating Bottom Cart Bar */}
       {cart.length > 0 && !isCartOpen && (
-        <div className="fixed bottom-4 inset-x-4 max-w-lg mx-auto z-40">
+        <div className="fixed bottom-4 inset-x-4 max-w-md mx-auto z-40">
           <button
             onClick={() => setIsCartOpen(true)}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between transition cursor-pointer"
+            className="w-full text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between transition cursor-pointer hover:scale-[1.02]"
+            style={{ backgroundColor: store.themeColor }}
           >
             <div className="flex items-center gap-3">
-              <div className="bg-emerald-500 text-white font-bold text-xs w-7 h-7 rounded-full flex items-center justify-center">
+              <div className="bg-emerald-400 text-slate-950 font-black text-xs w-7 h-7 rounded-full flex items-center justify-center">
                 {totalItemsCount}
               </div>
               <div className="text-left">
-                <p className="text-xs text-slate-300">Sepet Özeti</p>
-                <p className="text-sm font-bold">{formatCurrency(totalAmount)}</p>
+                <p className="text-[11px] opacity-80">Sepet Toplamı</p>
+                <p className="text-sm font-black">{formatCurrency(totalAmount)}</p>
               </div>
             </div>
-            <span className="bg-white text-slate-900 px-3.5 py-2 rounded-xl text-xs font-bold">
+            <span className="bg-white text-slate-950 px-4 py-2 rounded-2xl text-xs font-black shadow-sm">
               Siparişi Tamamla →
             </span>
           </button>
         </div>
       )}
 
+      {/* Story View Modal */}
+      {activeStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="relative max-w-sm w-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800">
+            <button
+              onClick={() => setActiveStory(null)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="aspect-9/16 w-full relative">
+              <img
+                src={activeStory.imageUrl}
+                alt={activeStory.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black via-black/60 to-transparent text-white">
+                <h4 className="font-black text-lg">{activeStory.title}</h4>
+                <p className="text-xs text-slate-300 mt-1">
+                  Öne çıkan vitrin hikayesi
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Slide-Over Cart & Checkout Drawer */}
       {isCartOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs">
           <div className="bg-white w-full max-w-lg h-full flex flex-col shadow-2xl overflow-hidden">
             {/* Drawer Header */}
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-slate-800" />
-                <h2 className="font-bold text-slate-900 text-base">
-                  Sepetim & Sipariş Gönderimi ({totalItemsCount})
+                <ShoppingBag className="w-5 h-5 text-slate-900" />
+                <h2 className="font-black text-slate-900 text-base">
+                  Sepetim ({totalItemsCount} Ürün)
                 </h2>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 transition cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -705,20 +798,18 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
 
             {/* Free Shipping Progress */}
             {store.freeShippingThreshold > 0 && deliveryType === 'SHIPPING' && cart.length > 0 && (
-              <div className="bg-emerald-50 border-b border-emerald-100 px-5 py-2.5 text-xs text-emerald-800">
+              <div className="bg-emerald-50 border-b border-emerald-100 px-5 py-2.5 text-xs text-emerald-800 font-semibold">
                 {subtotal >= store.freeShippingThreshold ? (
-                  <p className="font-semibold flex items-center gap-1.5">
+                  <p className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-emerald-600" />
-                    Tebrikler! Sepetiniz ücretsiz kargo limitini geçti.
+                    Harika! Ücretsiz kargo limitine ulaştınız.
                   </p>
                 ) : (
                   <div>
                     <p>
-                      Ücretsiz kargo için{' '}
-                      <strong>
-                        {formatCurrency(store.freeShippingThreshold - subtotal)}
-                      </strong>{' '}
-                      daha ürün ekleyebilirsiniz.
+                      Kargonun bedava olması için{' '}
+                      <strong>{formatCurrency(store.freeShippingThreshold - subtotal)}</strong>{' '}
+                      daha ekleyin.
                     </p>
                     <div className="w-full h-1.5 bg-emerald-200 rounded-full mt-1.5 overflow-hidden">
                       <div
@@ -739,12 +830,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
             {/* Drawer Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {cart.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-16">
                   <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-700 font-semibold">Sepetiniz şu an boş</p>
+                  <p className="text-slate-800 font-bold">Sepetiniz boş</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    Katalogdan beğendiğiniz ürünleri sepete ekleyerek WhatsApp veya Instagram DM
-                    üzerinden sipariş verebilirsiniz.
+                    Ürünleri ekleyip WhatsApp veya DM ile kolayca sipariş verebilirsiniz.
                   </p>
                 </div>
               ) : (
@@ -754,15 +844,15 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     {cart.map((item) => (
                       <div
                         key={item.cartItemId}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/50"
+                        className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/60"
                       >
                         <img
                           src={item.imageUrl}
                           alt={item.productName}
-                          className="w-16 h-16 rounded-lg object-cover bg-slate-100 shrink-0"
+                          className="w-16 h-16 rounded-xl object-cover bg-slate-100 shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm text-slate-900 truncate">
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                             {item.productName}
                           </h4>
                           {item.variantName && (
@@ -770,17 +860,12 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                               Seçenek: {item.variantName}
                             </p>
                           )}
-                          {item.sku && (
-                            <p className="text-[11px] text-slate-400 font-mono">
-                              Kod: {item.sku}
-                            </p>
-                          )}
-                          <p className="text-sm font-bold text-slate-900 mt-1">
+                          <p className="text-xs font-black text-slate-900 mt-1">
                             {formatCurrency(item.unitPrice * item.quantity)}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1">
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
                           <button
                             type="button"
                             onClick={() => updateCartQty(item.cartItemId, -1)}
@@ -792,7 +877,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                               <Minus className="w-3.5 h-3.5" />
                             )}
                           </button>
-                          <span className="text-xs font-bold w-5 text-center">
+                          <span className="text-xs font-black w-5 text-center">
                             {item.quantity}
                           </span>
                           <button
@@ -807,10 +892,10 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     ))}
                   </div>
 
-                  {/* Delivery & Customer Form */}
+                  {/* Delivery & Form */}
                   <div className="space-y-4 pt-2 border-t border-slate-200">
-                    <h3 className="font-bold text-sm text-slate-900">
-                      1. Teslimat Yöntemi (Online veya Fiziksel Mağaza)
+                    <h3 className="font-black text-xs uppercase tracking-wider text-slate-700">
+                      1. Teslimat Tercihi
                     </h3>
                     <div className="grid grid-cols-2 gap-2.5">
                       <button
@@ -821,17 +906,17 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                             setPaymentMethod('IBAN_TRANSFER');
                           }
                         }}
-                        className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                        className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                           deliveryType === 'SHIPPING'
-                            ? 'border-slate-900 bg-slate-900 text-white'
+                            ? 'border-slate-950 bg-slate-950 text-white'
                             : 'border-slate-200 bg-white text-slate-700'
                         }`}
                       >
-                        <div className="flex items-center gap-2 font-semibold text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-xs">
                           <Truck className="w-4 h-4" />
                           Adrese Kargo
                         </div>
-                        <p className="text-[11px] opacity-80 mt-1">
+                        <p className="text-[10px] opacity-80 mt-1">
                           {shippingCost === 0
                             ? 'Ücretsiz Kargo'
                             : `+${formatCurrency(store.shippingFee)} Kargo`}
@@ -845,54 +930,43 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                             setDeliveryType('STORE_PICKUP');
                             setPaymentMethod('PAY_AT_STORE');
                           }}
-                          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                          className={`p-3 rounded-2xl border text-left transition cursor-pointer ${
                             deliveryType === 'STORE_PICKUP'
-                              ? 'border-slate-900 bg-slate-900 text-white'
+                              ? 'border-slate-950 bg-slate-950 text-white'
                               : 'border-slate-200 bg-white text-slate-700'
                           }`}
                         >
-                          <div className="flex items-center gap-2 font-semibold text-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-xs">
                             <StoreIcon className="w-4 h-4" />
                             Mağazadan Gel-Al
                           </div>
-                          <p className="text-[11px] opacity-80 mt-1">
-                            Dükkandan Ücretsiz Teslim
-                          </p>
+                          <p className="text-[10px] opacity-80 mt-1">Dükkandan Ücretsiz</p>
                         </button>
                       )}
                     </div>
 
-                    {deliveryType === 'STORE_PICKUP' && store.address && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                          <strong>Mağaza Adresi:</strong> {store.address}
-                        </div>
-                      </div>
-                    )}
-
-                    <h3 className="font-bold text-sm text-slate-900 pt-2">
-                      2. Alıcı & İletişim Bilgileri
+                    <h3 className="font-black text-xs uppercase tracking-wider text-slate-700 pt-2">
+                      2. İletişim & Adres Bilgileri
                     </h3>
 
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          Ad Soyad *
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Adınız Soyadınız *
                         </label>
                         <input
                           type="text"
                           required
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
-                          placeholder="Örn: Ayşe Yılmaz"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-slate-900 outline-none"
+                          placeholder="Örn: Ayşe Kaya"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:border-slate-900 outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                          Telefon Numarası (WhatsApp) *
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Telefon Numaranız (WhatsApp) *
                         </label>
                         <input
                           type="tel"
@@ -900,28 +974,28 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
                           placeholder="05XX XXX XX XX"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-slate-900 outline-none"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:border-slate-900 outline-none"
                         />
                       </div>
 
                       {deliveryType === 'SHIPPING' && (
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">
-                            Açık Teslimat Adresi *
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Açık Kargo Adresi *
                           </label>
                           <textarea
                             rows={2}
                             required
                             value={customerAddress}
                             onChange={(e) => setCustomerAddress(e.target.value)}
-                            placeholder="Mahalle, sokak, bina no, ilçe / il"
-                            className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:border-slate-900 outline-none"
+                            placeholder="Mahalle, sokak, bina no, ilçe/il"
+                            className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:border-slate-900 outline-none"
                           />
                         </div>
                       )}
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
                           Ödeme Tercihi
                         </label>
                         <select
@@ -934,40 +1008,38 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                                 | 'PAY_AT_STORE'
                             )
                           }
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:border-slate-900 outline-none"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:border-slate-900 outline-none font-medium"
                         >
-                          <option value="IBAN_TRANSFER">Havale / EFT (IBAN ile Ödeme)</option>
-                          <option value="CASH_ON_DELIVERY">Kapıda Nakit / Kart ile Ödeme</option>
+                          <option value="IBAN_TRANSFER">Havale / EFT (IBAN)</option>
+                          <option value="CASH_ON_DELIVERY">Kapıda Nakit / Kart</option>
                           {store.allowStorePickup && (
-                            <option value="PAY_AT_STORE">
-                              Fiziksel Mağazada Ödeme (Gel-Al)
-                            </option>
+                            <option value="PAY_AT_STORE">Mağazada Gel-Al Öde</option>
                           )}
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-700 mb-1">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
                           Sipariş Notu (Opsiyonel)
                         </label>
                         <input
                           type="text"
                           value={note}
                           onChange={(e) => setNote(e.target.value)}
-                          placeholder="Hediye paketi, teslimat saati vb."
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:border-slate-900 outline-none"
+                          placeholder="Örn: Hediye paketi rica ediyorum"
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:border-slate-900 outline-none"
                         />
                       </div>
                     </div>
 
-                    {/* Price Summary Box */}
-                    <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1.5 text-sm">
+                    {/* Summary Box */}
+                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-xs">
                       <div className="flex justify-between text-slate-600">
                         <span>Ara Toplam</span>
                         <span>{formatCurrency(subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-slate-600">
-                        <span>Kargo Ücreti</span>
+                        <span>Kargo</span>
                         <span>
                           {shippingCost === 0 ? (
                             <strong className="text-emerald-600">Ücretsiz</strong>
@@ -976,14 +1048,14 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           )}
                         </span>
                       </div>
-                      <div className="flex justify-between font-extrabold text-slate-900 text-base pt-1.5 border-t border-slate-200">
-                        <span>Genel Toplam</span>
+                      <div className="flex justify-between font-black text-slate-950 text-sm pt-2 border-t border-slate-200">
+                        <span>Toplam Tutar</span>
                         <span>{formatCurrency(totalAmount)}</span>
                       </div>
                     </div>
 
                     {formError && (
-                      <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs font-medium">
+                      <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-xs font-semibold">
                         {formError}
                       </div>
                     )}
@@ -992,14 +1064,14 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               )}
             </div>
 
-            {/* Drawer Footer: Dual Channel Submit Buttons */}
+            {/* Submit Buttons */}
             {cart.length > 0 && (
-              <div className="p-4 border-t border-slate-200 bg-white space-y-2.5">
+              <div className="p-4 border-t border-slate-200 bg-white space-y-2">
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleCompleteOrder('WHATSAPP')}
-                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
+                  className="w-full py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-lg transition cursor-pointer disabled:opacity-50"
                 >
                   <MessageCircle className="w-4 h-4" />
                   WhatsApp ile Siparişi Gönder
@@ -1009,91 +1081,58 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleCompleteOrder('INSTAGRAM_DM')}
-                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:opacity-95 text-white flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 px-4 rounded-2xl font-black text-xs sm:text-sm bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:opacity-90 text-white flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
                 >
                   <Instagram className="w-4 h-4" />
                   Siparişi Kopyala & Instagram DM Aç
                 </button>
-                <p className="text-[11px] text-center text-slate-400">
-                  Siparişiniz aynı anda mağaza paneline kaydedilir ve stoktan düşülür.
-                </p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Completed Order Confirmation & Copy-Paste Helper Modal */}
+      {/* Confirmation Modal */}
       {completedOrderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">
-                    Sipariş Kaydedildi ({completedOrderModal.orderNumber})
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Stok ayrıldı ve satıcı paneline düştü.
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-7 h-7" />
               </div>
-              <button
-                onClick={() => setCompletedOrderModal(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div>
+                <h3 className="font-black text-slate-900 text-base">
+                  Sipariş Alındı ({completedOrderModal.orderNumber})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Mağaza paneline kaydedildi ve hazırlandı.
+                </p>
+              </div>
             </div>
 
             {completedOrderModal.channel === 'INSTAGRAM_DM' ? (
-              <div className="bg-pink-50 border border-pink-200 rounded-xl p-3.5 text-xs text-pink-900 space-y-1.5">
+              <div className="bg-pink-50 border border-pink-200 rounded-2xl p-3.5 text-xs text-pink-900 space-y-1">
                 <p className="font-bold flex items-center gap-1.5 text-pink-700">
                   <Instagram className="w-4 h-4" />
-                  Instagram DM Adımı (Otomatik Kopyalandı!)
+                  Instagram DM Adımı
                 </p>
                 <p>
-                  Instagram hazır metinle DM açmaya izin vermediği için sipariş özetiniz{' '}
-                  <strong>panonuza kopyalandı</strong>. Aşağıdaki butonla mağaza DM ekranını açıp{' '}
-                  <strong>Yapıştır (Paste)</strong> diyerek gönderebilirsiniz.
+                  Sipariş özetiniz <strong>panonuza kopyalandı</strong>. Aşağıdaki butondan mağaza
+                  DM ekranına gidip yapıştırarak gönderebilirsiniz.
                 </p>
               </div>
             ) : (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900">
-                Hazır sipariş mesajınızla WhatsApp penceresi açıldı. Eğer açılmadıysa aşağıdaki
-                butona tıklayabilirsiniz.
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-xs text-emerald-900">
+                Hazır sipariş özetiniz WhatsApp üzerinden satıcıya iletilmek üzere açıldı.
               </div>
             )}
-
-            <div>
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>Hazırlanan Sipariş Mesajı:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(completedOrderModal.messageText);
-                    setCompletedOrderModal({ ...completedOrderModal, copied: true });
-                  }}
-                  className="inline-flex items-center gap-1 text-slate-800 font-semibold hover:underline cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  {completedOrderModal.copied ? 'Kopyalandı ✓' : 'Metni Kopyala'}
-                </button>
-              </div>
-              <pre className="bg-slate-900 text-slate-100 p-3 rounded-xl text-[11px] font-mono whitespace-pre-wrap max-h-48 overflow-y-auto">
-                {completedOrderModal.messageText}
-              </pre>
-            </div>
 
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <a
                 href={completedOrderModal.targetUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs text-white flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-3 px-4 rounded-xl font-black text-xs text-white flex items-center justify-center gap-1.5 ${
                   completedOrderModal.channel === 'WHATSAPP'
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-gradient-to-r from-purple-600 to-pink-600'
@@ -1101,15 +1140,15 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               >
                 <ExternalLink className="w-4 h-4" />
                 {completedOrderModal.channel === 'WHATSAPP'
-                  ? "WhatsApp'ı Aç ve Gönder"
-                  : 'Instagram DM Ekranını Aç (ig.me)'}
+                  ? "WhatsApp'ı Aç"
+                  : 'Instagram DM Aç'}
               </a>
               <button
                 type="button"
                 onClick={() => setCompletedOrderModal(null)}
-                className="py-2.5 px-4 rounded-xl font-semibold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+                className="py-3 px-4 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
               >
-                Vitrine Dön
+                Kapat
               </button>
             </div>
           </div>

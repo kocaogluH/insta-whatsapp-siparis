@@ -7,3 +7,5 @@ out
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+.vs/
+public/uploads/

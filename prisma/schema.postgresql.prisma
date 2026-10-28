@@ -8,20 +8,38 @@ datasource db {
 }
 
 model Store {
-  id                    String    @id @default(cuid())
-  slug                  String    @unique
+  id                    String      @id @default(cuid())
+  slug                  String      @unique
   name                  String
+  tagline               String?
   description           String?
+  logoUrl               String?
+  bannerUrl             String?
+  themeColor            String      @default("#0f172a")
   whatsappPhone         String
   instagramHandle       String
-  shippingFee           Float     @default(49.90)
-  freeShippingThreshold Float     @default(750.0)
+  shippingFee           Float       @default(49.90)
+  freeShippingThreshold Float       @default(750.0)
   address               String?
-  allowStorePickup      Boolean   @default(true)
+  allowStorePickup      Boolean     @default(true)
   ibanInfo              String?
-  createdAt             DateTime  @default(now())
+  pinCode               String      @default("1234")
+  isActive              Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  stories               Story[]
   products              Product[]
   orders                Order[]
+}
+
+model Story {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title      String
+  imageUrl   String
+  linkUrl    String?
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
 }
 
 model Product {

@@ -8,20 +8,38 @@ datasource db {
 }
 
 model Store {
-  id                    String    @id @default(cuid())
-  slug                  String    @unique
+  id                    String      @id @default(cuid())
+  slug                  String      @unique
   name                  String
+  tagline               String?
   description           String?
+  logoUrl               String?
+  bannerUrl             String?
+  themeColor            String      @default("#0f172a") // e.g. #0f172a (Siyah), #e11d48 (Rose), #7c3aed (Mor), #d97706 (Amber)
   whatsappPhone         String
   instagramHandle       String
-  shippingFee           Float     @default(49.90)
-  freeShippingThreshold Float     @default(750.0)
+  shippingFee           Float       @default(49.90)
+  freeShippingThreshold Float       @default(750.0)
   address               String?
-  allowStorePickup      Boolean   @default(true)
+  allowStorePickup      Boolean     @default(true)
   ibanInfo              String?
-  createdAt             DateTime  @default(now())
+  pinCode               String      @default("1234") // Mağaza sahibinin basit 4 haneli panel giriş şifresi
+  isActive              Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  stories               Story[]
   products              Product[]
   orders                Order[]
+}
+
+model Story {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title      String
+  imageUrl   String
+  linkUrl    String?
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
 }
 
 model Product {
@@ -64,13 +82,13 @@ model Order {
   customerName    String
   customerPhone   String
   customerAddress String
-  deliveryType    String      @default("SHIPPING") // SHIPPING | STORE_PICKUP
-  paymentMethod   String      @default("IBAN_TRANSFER") // IBAN_TRANSFER | CASH_ON_DELIVERY | PAY_AT_STORE
-  channel         String      @default("WHATSAPP") // WHATSAPP | INSTAGRAM_DM | POS
+  deliveryType    String      @default("SHIPPING")
+  paymentMethod   String      @default("IBAN_TRANSFER")
+  channel         String      @default("WHATSAPP")
   subtotal        Float
   shippingCost    Float
   totalAmount     Float
-  status          String      @default("NEW") // NEW | PREPARING | SHIPPED | COMPLETED | CANCELLED
+  status          String      @default("NEW")
   note            String?
   createdAt       DateTime    @default(now())
   items           OrderItem[]
