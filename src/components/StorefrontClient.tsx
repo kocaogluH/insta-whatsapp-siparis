@@ -359,32 +359,6 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
 
   return (
     <div className="min-h-screen bg-[#f7f4ee] text-[#33261f] pb-28 font-sans selection:bg-[#eae3d6] selection:text-[#33261f]">
-      {/* Top Demo Bar in Warm Linen Tone */}
-      <div className="bg-[#3e312b] text-[#f7f4ee] text-xs py-2 px-4 border-b border-[#2b221d]">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#ba9b81] animate-pulse" />
-            <span className="font-medium text-[#f7f4ee]">
-              Canlı Katalog: <strong className="text-white">/{store.slug}</strong>
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/${store.slug}/panel`}
-              className="text-xs font-semibold text-[#e7cdbb] hover:text-white bg-white/10 px-2.5 py-1 rounded-lg border border-white/15 transition"
-            >
-              Mağaza Paneli →
-            </Link>
-            <Link
-              href="/admin"
-              className="text-xs text-[#cfbeab] hover:text-white transition"
-            >
-              Yönetici
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Luxury Boutique Hero Header */}
       <div className="relative bg-white border-b border-[#e5dcce]">
         {/* Banner Cover Image */}

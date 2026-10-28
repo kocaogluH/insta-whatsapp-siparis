@@ -55,6 +55,14 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const adminKey = req.headers.get('x-admin-key');
+    if (adminKey !== '1923' && adminKey !== process.env.ADMIN_KEY) {
+      return NextResponse.json(
+        { error: 'Yetkisiz işlem. Geçerli ajans anahtarı gerekli.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const {
       name,

@@ -6,39 +6,48 @@ export async function ensureDemoStore() {
     include: { stories: true },
   });
 
+  const DISTINCT_STORIES = [
+    {
+      title: 'Yeni Sezon',
+      imageUrl:
+        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=400&q=80',
+      orderIndex: 1,
+    },
+    {
+      title: 'Kombinler',
+      imageUrl:
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=400&q=80',
+      orderIndex: 2,
+    },
+    {
+      title: 'Keten Seri',
+      imageUrl:
+        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=400&q=80',
+      orderIndex: 3,
+    },
+    {
+      title: 'Müşteriler',
+      imageUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      orderIndex: 4,
+    },
+  ];
+
   if (existing) {
-    if (existing.stories.length === 0) {
+    // If stories are missing or using duplicated product images, refresh them
+    const hasDuplicates = existing.stories.some(
+      (s) =>
+        s.imageUrl.includes('photo-1548036328-c9fa89d128fa') ||
+        s.imageUrl.includes('photo-1596755094514-f87e34085b2c')
+    );
+
+    if (existing.stories.length === 0 || hasDuplicates) {
+      await prisma.story.deleteMany({ where: { storeId: existing.id } });
       await prisma.story.createMany({
-        data: [
-          {
-            storeId: existing.id,
-            title: 'Yeni Sezon',
-            imageUrl:
-              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 1,
-          },
-          {
-            storeId: existing.id,
-            title: 'Kombinler',
-            imageUrl:
-              'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 2,
-          },
-          {
-            storeId: existing.id,
-            title: 'Keten Seri',
-            imageUrl:
-              'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 3,
-          },
-          {
-            storeId: existing.id,
-            title: 'Müşteriler',
-            imageUrl:
-              'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 4,
-          },
-        ],
+        data: DISTINCT_STORIES.map((st) => ({
+          storeId: existing.id,
+          ...st,
+        })),
       });
     }
     return existing;
@@ -65,32 +74,7 @@ export async function ensureDemoStore() {
       pinCode: '1234',
       ibanInfo: 'TR12 0006 2000 0000 0123 4567 89 (Nişantaşı Butik Tekstil)',
       stories: {
-        create: [
-          {
-            title: 'Yeni Sezon',
-            imageUrl:
-              'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 1,
-          },
-          {
-            title: 'Kombinler',
-            imageUrl:
-              'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 2,
-          },
-          {
-            title: 'Keten Seri',
-            imageUrl:
-              'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 3,
-          },
-          {
-            title: 'Müşteriler',
-            imageUrl:
-              'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=400&q=80',
-            orderIndex: 4,
-          },
-        ],
+        create: DISTINCT_STORIES,
       },
     },
   });

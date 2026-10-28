@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Store,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -40,10 +41,10 @@ export default function HomePage() {
               Örnek Butik Vitrini
             </Link>
             <Link
-              href="/admin"
+              href="/butikmoda/panel"
               className="text-xs font-semibold px-4 py-2 rounded-xl bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs transition"
             >
-              Yönetici Paneli →
+              Butik Paneli Girişi →
             </Link>
           </div>
         </div>
@@ -68,27 +69,19 @@ export default function HomePage() {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
           <Link
-            href="/admin"
+            href="/butikmoda"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] font-semibold text-xs sm:text-sm shadow-xs transition"
           >
-            <Plus className="w-4 h-4" />
-            Yeni Bir Dükkana Mağaza Aç (/admin)
-          </Link>
-
-          <Link
-            href="/butikmoda"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-[#f2ece1] text-[#33261f] font-semibold text-xs sm:text-sm border border-[#e5dcce] shadow-xs transition"
-          >
-            <ShoppingBag className="w-4 h-4 text-[#8c5f4a]" />
+            <ShoppingBag className="w-4 h-4 text-[#cfbeab]" />
             Müşteri Vitrinini İncele (/butikmoda)
           </Link>
 
           <Link
             href="/butikmoda/panel"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] font-semibold text-xs sm:text-sm border border-[#e5dcce] transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-[#f2ece1] text-[#33261f] font-semibold text-xs sm:text-sm border border-[#e5dcce] shadow-xs transition"
           >
-            <Smartphone className="w-4 h-4 text-[#78695e]" />
-            Butik Sahibi Paneli (/butikmoda/panel)
+            <Smartphone className="w-4 h-4 text-[#8c5f4a]" />
+            Satıcı Panelini Dene (PIN: 1234)
           </Link>
         </div>
 
@@ -193,8 +186,17 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#e5dcce] py-6 text-center text-xs text-[#78695e] bg-white/40">
-        InstaSipariş Platformu &bull; Doğal tonlarda Instagram &amp; WhatsApp butik sipariş altyapısı
+      <footer className="border-t border-[#e5dcce] py-6 px-4 bg-white/40">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#78695e]">
+          <span>InstaSipariş Platformu &bull; Doğal tonlarda Instagram &amp; WhatsApp butik sipariş altyapısı</span>
+          <Link
+            href="/admin"
+            className="text-[#9e8e82] hover:text-[#33261f] transition inline-flex items-center gap-1.5"
+          >
+            <Lock className="w-3 h-3" />
+            Ajans Yönetici Girişi
+          </Link>
+        </div>
       </footer>
     </div>
   );
