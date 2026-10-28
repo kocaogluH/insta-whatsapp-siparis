@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import bcrypt from 'bcryptjs';
 
 export async function ensureDemoStore() {
   const existing = await prisma.store.findUnique({
@@ -50,6 +51,17 @@ export async function ensureDemoStore() {
         })),
       });
     }
+
+    if (!existing.pinHash) {
+      await prisma.store.update({
+        where: { id: existing.id },
+        data: {
+          pinHash: bcrypt.hashSync(existing.pinCode || '1234', 10),
+          mustChangePin: true,
+          pinVersion: 1,
+        },
+      });
+    }
     return existing;
   }
 
@@ -72,6 +84,9 @@ export async function ensureDemoStore() {
       address: 'Teşvikiye Mah. Valikonağı Cad. No:42 Şişli/İstanbul',
       allowStorePickup: true,
       pinCode: '1234',
+      pinHash: bcrypt.hashSync('1234', 10),
+      pinVersion: 1,
+      mustChangePin: true,
       ibanInfo: 'TR12 0006 2000 0000 0123 4567 89 (Nişantaşı Butik Tekstil)',
       stories: {
         create: DISTINCT_STORIES,

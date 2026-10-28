@@ -81,7 +81,7 @@ export default function HomePage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-[#f2ece1] text-[#33261f] font-semibold text-xs sm:text-sm border border-[#e5dcce] shadow-xs transition"
           >
             <Smartphone className="w-4 h-4 text-[#8c5f4a]" />
-            Satıcı Panelini Dene (PIN: 1234)
+            Satıcı Paneli Girişi
           </Link>
         </div>
 
@@ -178,25 +178,16 @@ export default function HomePage() {
             </div>
             <h3 className="font-bold text-base text-[#33261f]">Çoklu Mağaza (SaaS) Mimarisi</h3>
             <p className="text-xs text-[#78695e] leading-relaxed">
-              Tek sistemden dilediğiniz kadar butiğe ayrı sayfa açabilir, her birine kendi 4 haneli PIN
-              şifresini verip yönetebilirsiniz.
+              Tek sistemden dilediğiniz kadar butiğe ayrı sayfa açabilir, her birine kendi güvenli PIN
+              şifresini verip bağımsız yönetebilirsiniz.
             </p>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#e5dcce] py-6 px-4 bg-white/40">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#78695e]">
-          <span>InstaSipariş Platformu &bull; Doğal tonlarda Instagram &amp; WhatsApp butik sipariş altyapısı</span>
-          <Link
-            href="/admin"
-            className="text-[#9e8e82] hover:text-[#33261f] transition inline-flex items-center gap-1.5"
-          >
-            <Lock className="w-3 h-3" />
-            Ajans Yönetici Girişi
-          </Link>
-        </div>
+      <footer className="border-t border-[#e5dcce] py-6 px-4 bg-white/40 text-center text-xs text-[#78695e]">
+        InstaSipariş Platformu &bull; Doğal tonlarda Instagram &amp; WhatsApp butik sipariş altyapısı
       </footer>
     </div>
   );

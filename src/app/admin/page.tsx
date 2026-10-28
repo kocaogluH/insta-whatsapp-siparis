@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Store,
@@ -11,13 +11,11 @@ import {
   Instagram,
   MessageCircle,
   Eye,
-  KeyRound,
   RefreshCw,
   Search,
-  Sparkles,
-  ShieldAlert,
   LogOut,
-  ExternalLink,
+  AlertTriangle,
+  KeyRound,
 } from 'lucide-react';
 import { formatCurrency, cleanPhoneForWhatsApp } from '@/lib/format';
 
@@ -29,7 +27,7 @@ interface StoreItem {
   whatsappPhone: string;
   instagramHandle: string;
   themeColor: string;
-  pinCode: string;
+  mustChangePin: boolean;
   isActive: boolean;
   createdAt: string;
   productCount: number;
@@ -37,7 +35,7 @@ interface StoreItem {
   totalRevenue: number;
 }
 
-// 4 palettes inspired directly by user's nature & interior references
+// 4 palettes inspired directly by nature & interior references
 const PALETTE_PRESETS = [
   {
     id: 'natural',
@@ -75,11 +73,14 @@ const PALETTE_PRESETS = [
 
 export default function SuperAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminPin, setAdminPin] = useState('');
-  const [authError, setAuthError] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [stores, setStores] = useState<StoreItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -91,68 +92,86 @@ export default function SuperAdminPage() {
   const [newStoreTagline, setNewStoreTagline] = useState('');
   const [newStorePhone, setNewStorePhone] = useState('');
   const [newStoreIg, setNewStoreIg] = useState('');
-  const [newStorePin, setNewStorePin] = useState('1234');
   const [newStoreTheme, setNewStoreTheme] = useState('#3c302a');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Temporary PIN Modal (Shown ONLY once upon creation)
+  const [createdStoreResult, setCreatedStoreResult] = useState<{
+    name: string;
+    slug: string;
+    temporaryPin: string;
+  } | null>(null);
+  const [copiedPin, setCopiedPin] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchStores = async () => {
+  const fetchStores = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const res = await fetch('/api/admin/stores', {
-        headers: { 'x-admin-key': '1923' },
         cache: 'no-store',
       });
+
       if (res.ok) {
         const data = await res.json();
         setStores(Array.isArray(data) ? data : []);
-      }
-    } catch (e) {
-      console.error(e);
-      showToast('Mağazalar yüklenirken hata oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    try {
-      const savedAuth = sessionStorage.getItem('admin_session_auth');
-      if (savedAuth === 'true') {
         setIsAuthenticated(true);
-        fetchStores();
+      } else if (res.status === 401 || res.status === 403) {
+        setIsAuthenticated(false);
+      } else {
+        setLoadError('Veritabanına bağlanılamadı. Soğuk başlangıç (cold start) olabilir.');
       }
     } catch {
-      // Ignore sessionStorage issues
+      setLoadError('Ağ hatası oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setLoading(false);
+      setCheckingSession(false);
     }
   }, []);
 
-  const handleLogin = (e?: React.FormEvent, directPin?: string) => {
-    if (e) e.preventDefault();
-    const pinToTest = directPin !== undefined ? directPin : adminPin;
-    if (pinToTest === '1923') {
+  useEffect(() => {
+    fetchStores();
+  }, [fetchStores]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsLoggingIn(true);
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error || 'Geçersiz yönetici şifresi.');
+        return;
+      }
+
+      setAdminPassword('');
       setIsAuthenticated(true);
-      setAuthError(false);
-      try {
-        sessionStorage.setItem('admin_session_auth', 'true');
-      } catch {}
       fetchStores();
-    } else {
-      setAuthError(true);
+    } catch {
+      setAuthError('Giriş sırasında bağlantı hatası oluştu.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      sessionStorage.removeItem('admin_session_auth');
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch {}
     setIsAuthenticated(false);
-    setAdminPin('');
+    setStores([]);
   };
 
   const handleNameChange = (val: string) => {
@@ -177,17 +196,13 @@ export default function SuperAdminPage() {
     try {
       const res = await fetch('/api/admin/stores', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': '1923',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newStoreName,
           slug: newStoreSlug,
           tagline: newStoreTagline,
           whatsappPhone: newStorePhone,
           instagramHandle: newStoreIg,
-          pinCode: newStorePin,
           themeColor: newStoreTheme,
         }),
       });
@@ -197,14 +212,20 @@ export default function SuperAdminPage() {
         throw new Error(data.error || 'Mağaza oluşturulamadı');
       }
 
-      showToast(`"${data.name}" mağazası 10 saniyede açıldı! 🎉`);
       setShowModal(false);
       setNewStoreName('');
       setNewStoreSlug('');
       setNewStoreTagline('');
       setNewStorePhone('');
       setNewStoreIg('');
-      setNewStorePin('1234');
+
+      // Geçici PIN sonucunu admine tek seferlik göster
+      setCreatedStoreResult({
+        name: data.name,
+        slug: data.slug,
+        temporaryPin: data.temporaryPin,
+      });
+
       fetchStores();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -217,7 +238,15 @@ export default function SuperAdminPage() {
     }
   };
 
-  // If not authenticated, render the secure SuperAdmin Lock Gate
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
+        <RefreshCw className="w-8 h-8 text-[#786c64] animate-spin" />
+      </div>
+    );
+  }
+
+  // 1. GÜVENLİK KİLİT EKRANI (Kodda şifre yok, ipucu yok)
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#f7f4ee] flex items-center justify-center p-4 font-sans text-[#33261f]">
@@ -232,7 +261,7 @@ export default function SuperAdminPage() {
             </span>
             <h1 className="text-xl font-bold text-[#33261f] mt-3">Süper Admin Girişi</h1>
             <p className="text-xs text-[#78695e] mt-1.5 leading-relaxed">
-              Bu panel yalnızca yetkili ajans yöneticisine aittir. Mağaza açmak ve yönetim için şifrenizi girin.
+              Bu alan yalnızca yetkili ajans yöneticisine aittir. Devam etmek için şifrenizi girin.
             </p>
           </div>
 
@@ -240,33 +269,26 @@ export default function SuperAdminPage() {
             <div>
               <input
                 type="password"
-                maxLength={8}
+                maxLength={32}
                 autoFocus
-                placeholder="Yönetici Şifresi (Varsayılan: 1923)"
-                value={adminPin}
-                onChange={(e) => setAdminPin(e.target.value)}
-                className="w-full text-center text-xl font-mono font-bold tracking-widest py-3 px-4 bg-[#fdfcf9] border border-[#e5dcce] rounded-2xl text-[#33261f] outline-none focus:border-[#8c5f4a] shadow-inner"
+                placeholder="Yönetici Şifreniz"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="w-full text-center text-lg font-mono font-bold tracking-widest py-3 px-4 bg-[#fdfcf9] border border-[#e5dcce] rounded-2xl text-[#33261f] outline-none focus:border-[#8c5f4a] shadow-inner"
               />
               {authError && (
                 <p className="text-xs text-[#783e35] mt-2 font-semibold">
-                  Hatalı şifre! (Varsayılan şifre: 1923)
+                  {authError}
                 </p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs cursor-pointer transition"
+              disabled={isLoggingIn || !adminPassword}
+              className="w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs cursor-pointer transition disabled:opacity-50"
             >
-              Yönetici Paneline Gir
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleLogin(undefined, '1923')}
-              className="w-full py-2.5 rounded-xl font-semibold text-xs bg-[#f2ece1] hover:bg-[#eae3d6] text-[#6d5a4e] border border-[#e5dcce] cursor-pointer transition"
-            >
-              ⚡ Hızlı Giriş (1923)
+              {isLoggingIn ? 'Doğrulanıyor...' : 'Yönetici Paneline Gir'}
             </button>
           </form>
 
@@ -353,31 +375,53 @@ export default function SuperAdminPage() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Top Aggregated SaaS Metrics */}
+        {/* Soğuk Başlangıç veya Ağ Hatası Bildirimi */}
+        {loadError && (
+          <div className="bg-[#faf2ea] border border-[#ebd7c5] p-4 rounded-2xl flex items-center justify-between gap-3 text-xs text-[#784d33]">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-[#bf6d37] shrink-0" />
+              <span>{loadError}</span>
+            </div>
+            <button
+              onClick={fetchStores}
+              className="px-3 py-1.5 bg-[#312925] text-white rounded-xl font-bold hover:bg-[#1e1916] transition cursor-pointer shrink-0"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        )}
+
+        {/* Top Aggregated SaaS Metrics (Yüklenirken "—" İskeleti Gösterir) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-[#e8dfcf] rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-semibold text-[#8a7c73]">Aktif Mağazalar</p>
-            <p className="text-3xl font-bold text-[#312925] mt-1">{stores.length}</p>
-            <p className="text-[11px] text-[#8a7c73] mt-1">Bağımsız Instagram bio linkleri</p>
+            <p className="text-3xl font-bold text-[#312925] mt-1">
+              {loading ? '—' : stores.length}
+            </p>
+            <p className="text-[11px] text-[#8a7c73] mt-1">Bağımsız bio katalogları</p>
           </div>
 
           <div className="bg-white border border-[#e8dfcf] rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-semibold text-[#8a7c73]">Toplam Satış Hacmi</p>
             <p className="text-2xl sm:text-3xl font-bold text-[#783e35] mt-1">
-              {formatCurrency(totalRevenue)}
+              {loading ? '—' : formatCurrency(totalRevenue)}
             </p>
             <p className="text-[11px] text-[#8a7c73] mt-1">Tüm dükkanların cirosu</p>
           </div>
 
           <div className="bg-white border border-[#e8dfcf] rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-semibold text-[#8a7c73]">Gelen Siparişler</p>
-            <p className="text-3xl font-bold text-[#312925] mt-1">{totalOrders}</p>
-            <p className="text-[11px] text-[#8a7c73] mt-1">WhatsApp & IG DM fişleri</p>
+            <p className="text-3xl font-bold text-[#312925] mt-1">
+              {loading ? '—' : totalOrders}
+            </p>
+            <p className="text-[11px] text-[#8a7c73] mt-1">WhatsApp & IG fişleri</p>
           </div>
 
           <div className="bg-white border border-[#e8dfcf] rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-semibold text-[#8a7c73]">Katalogdaki Ürünler</p>
-            <p className="text-3xl font-bold text-[#312925] mt-1">{totalProducts}</p>
+            <p className="text-3xl font-bold text-[#312925] mt-1">
+              {loading ? '—' : totalProducts}
+            </p>
             <p className="text-[11px] text-[#8a7c73] mt-1">Fotoğraflı ve varyantlı</p>
           </div>
         </div>
@@ -388,7 +432,7 @@ export default function SuperAdminPage() {
             <div>
               <h2 className="text-lg font-bold text-[#312925]">Yönetilen Mağazalar</h2>
               <p className="text-xs text-[#786c64]">
-                Açılan tüm dükkanların vitrin ve panel erişimleri.
+                Açılan tüm butiklerin vitrin ve panel erişimleri.
               </p>
             </div>
 
@@ -405,16 +449,16 @@ export default function SuperAdminPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-20 text-[#8a7c73]">
+            <div className="text-center py-20 text-[#8a7c73] bg-white rounded-3xl border border-[#e8dfcf]">
               <RefreshCw className="w-7 h-7 animate-spin mx-auto mb-2 text-[#786c64]" />
-              Mağazalar yükleniyor...
+              Mağazalar yükleniyor (Veritabanı uyanıyor olabilir)...
             </div>
           ) : stores.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-[#e8dfcf] p-8 space-y-3">
               <Store className="w-10 h-10 text-[#8a7c73] mx-auto" />
               <h3 className="font-bold text-base text-[#312925]">Henüz kayıtlı mağaza yok</h3>
               <p className="text-xs text-[#786c64] max-w-md mx-auto">
-                İlk butiğinizi 10 saniyede açmak için yukarıdaki &quot;Yeni Mağaza Aç&quot; butonuna tıklayın.
+                İlk butiğinizi açmak için yukarıdaki &quot;Yeni Mağaza Aç&quot; butonuna tıklayın.
               </p>
             </div>
           ) : (
@@ -505,17 +549,6 @@ export default function SuperAdminPage() {
                         @{st.instagramHandle.replace('@', '')}
                       </a>
                     </div>
-
-                    {/* PIN Code Badge */}
-                    <div className="flex items-center justify-between bg-[#f2ece1] px-3 py-2 rounded-xl text-xs text-[#52443a]">
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-[#786c64]">
-                        <KeyRound className="w-3.5 h-3.5 text-[#8b634d]" />
-                        Panel PIN Kodu:
-                      </span>
-                      <span className="font-mono font-bold tracking-wider text-[#312925]">
-                        {st.pinCode}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Actions Bar */}
@@ -563,14 +596,14 @@ export default function SuperAdminPage() {
         </div>
       </main>
 
-      {/* MODAL: 10-Second Boutique Creator with Natural Palettes */}
+      {/* MODAL: Yeni Butik Tanımlama (Rastgele Güvenli PIN ile) */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-[#e8dfcf] rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#8b634d] bg-[#f9f7f2] px-2 py-0.5 rounded-full border border-[#ede5d8]">
-                  10 Saniyede Mağaza Kurulumu
+                  SaaS Mağaza Kurulumu
                 </span>
                 <h3 className="text-lg font-bold text-[#312925] mt-1">
                   Yeni Butik / Dükkan Tanımla
@@ -654,21 +687,6 @@ export default function SuperAdminPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
-                    Satıcı Panel PIN Kodu *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    placeholder="1234"
-                    value={newStorePin}
-                    onChange={(e) => setNewStorePin(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#ded4c3] bg-[#fdfcf9] text-xs sm:text-sm font-mono font-bold text-[#8b634d] outline-none"
-                  />
-                </div>
-
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
                     Slogan / Açıklama (Opsiyonel)
@@ -726,10 +744,65 @@ export default function SuperAdminPage() {
                   disabled={submitting}
                   className="px-6 py-2.5 rounded-xl text-xs font-bold bg-[#312925] hover:bg-[#1e1916] text-[#f7f4ee] shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? 'Açılıyor...' : 'Mağazayı Aç (10 Sn)'}
+                  {submitting ? 'Açılıyor...' : 'Mağazayı Aç (Geçici PIN Üret)'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Üretilen Tek Seferlik Geçici PIN Bilgisi */}
+      {createdStoreResult && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#e8dfcf] rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 shadow-2xl text-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#f0ebe1] text-[#786c64] flex items-center justify-center mx-auto border border-[#ded4c3]">
+              <KeyRound className="w-7 h-7 text-[#8b634d]" />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#47635e] bg-[#edf2ec] px-2.5 py-0.5 rounded-full border border-[#d6dfd4]">
+                Mağaza Başarıyla Açıldı
+              </span>
+              <h3 className="text-lg font-bold text-[#312925] mt-2">
+                {createdStoreResult.name}
+              </h3>
+              <p className="text-xs text-[#786c64] mt-1 font-mono">
+                /{createdStoreResult.slug}
+              </p>
+            </div>
+
+            <div className="bg-[#f9f7f2] p-4 rounded-2xl border border-[#ede5d8] space-y-2">
+              <p className="text-xs font-semibold text-[#786c64]">
+                Satıcı İçin Üretilen Geçici Giriş PIN Kodu:
+              </p>
+              <p className="text-2xl font-mono font-bold tracking-widest text-[#312925]">
+                {createdStoreResult.temporaryPin}
+              </p>
+              <p className="text-[11px] text-[#b94a38] font-medium leading-tight pt-1">
+                ⚠️ Güvenlik gereği bu PIN yalnızca BİR KEZ gösterilir. Satıcı ilk girişinde en az 6 haneli yeni bir PIN belirlemek zorundadır.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(createdStoreResult.temporaryPin);
+                  setCopiedPin(true);
+                  setTimeout(() => setCopiedPin(false), 2000);
+                }}
+                className="flex-1 py-3 rounded-xl text-xs font-bold bg-[#f0ebe1] hover:bg-[#e4dbcd] text-[#312925] border border-[#ded4c3] transition cursor-pointer"
+              >
+                {copiedPin ? 'PIN Kopyalandı ✓' : 'PIN Kodunu Kopyala'}
+              </button>
+
+              <button
+                onClick={() => setCreatedStoreResult(null)}
+                className="flex-1 py-3 rounded-xl text-xs font-bold bg-[#312925] hover:bg-[#1e1916] text-[#f7f4ee] transition cursor-pointer"
+              >
+                Anladım, Kapat
+              </button>
+            </div>
           </div>
         </div>
       )}

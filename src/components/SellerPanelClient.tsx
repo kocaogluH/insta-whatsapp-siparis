@@ -21,6 +21,9 @@ import {
   MessageCircle,
   AlertCircle,
   ExternalLink,
+  ShieldAlert,
+  LogOut,
+  KeyRound,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -98,9 +101,17 @@ export interface StoreData {
   address: string | null;
   allowStorePickup: boolean;
   ibanInfo: string | null;
-  pinCode: string;
+  mustChangePin: boolean;
   products: Product[];
   orders: Order[];
+}
+
+interface PublicStore {
+  id: string;
+  slug: string;
+  name: string;
+  themeColor: string;
+  logoUrl: string | null;
 }
 
 const STATUS_META: Record<
@@ -135,25 +146,34 @@ const STATUS_META: Record<
 };
 
 export default function SellerPanelClient({
-  initialStore,
+  publicStore,
   slug,
 }: {
-  initialStore: StoreData;
+  publicStore: PublicStore;
   slug: string;
 }) {
-  const [store, setStore] = useState<StoreData>(initialStore);
+  const [store, setStore] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'pos' | 'settings'>('products');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [copiedBio, setCopiedBio] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Simple PIN Login Authentication
+  // Kimlik Doğrulama Durumu (HttpOnly Çerez ile yönetilir)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [enteredPin, setEnteredPin] = useState('');
-  const [pinError, setPinError] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // New Product State
+  // Zorunlu PIN Değiştirme Durumu (En az 6 hane kuralı)
+  const [mustChangePin, setMustChangePin] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [newPinConfirm, setNewPinConfirm] = useState('');
+  const [changePinError, setChangePinError] = useState<string | null>(null);
+  const [isChangingPin, setIsChangingPin] = useState(false);
+
+  // Yeni Ürün Ekleme State'i
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [prodName, setProdName] = useState('');
@@ -170,18 +190,17 @@ export default function SellerPanelClient({
     { name: 'M', sku: '', stock: 5 },
   ]);
 
-  // Settings State
+  // Ayarlar Form State'i
   const [settings, setSettings] = useState({
-    name: initialStore.name,
-    tagline: initialStore.tagline || '',
-    whatsappPhone: initialStore.whatsappPhone,
-    instagramHandle: initialStore.instagramHandle,
-    shippingFee: initialStore.shippingFee,
-    freeShippingThreshold: initialStore.freeShippingThreshold,
-    address: initialStore.address || '',
-    allowStorePickup: initialStore.allowStorePickup,
-    ibanInfo: initialStore.ibanInfo || '',
-    pinCode: initialStore.pinCode || '1234',
+    name: publicStore.name,
+    tagline: '',
+    whatsappPhone: '',
+    instagramHandle: '',
+    shippingFee: 49.9,
+    freeShippingThreshold: 750,
+    address: '',
+    allowStorePickup: true,
+    ibanInfo: '',
   });
 
   const showToast = (msg: string) => {
@@ -189,13 +208,19 @@ export default function SellerPanelClient({
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchStore = useCallback(async () => {
+  // Yetkili API'den panel verilerini çekme
+  const fetchPanelData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/store/${slug}`, { cache: 'no-store' });
+      const res = await fetch(`/api/store/${slug}/panel-data`, {
+        cache: 'no-store',
+      });
+
       if (res.ok) {
         const data: StoreData = await res.json();
         setStore(data);
+        setIsAuthenticated(true);
+        setMustChangePin(data.mustChangePin);
         setSettings({
           name: data.name,
           tagline: data.tagline || '',
@@ -206,42 +231,105 @@ export default function SellerPanelClient({
           address: data.address || '',
           allowStorePickup: data.allowStorePickup,
           ibanInfo: data.ibanInfo || '',
-          pinCode: data.pinCode || '1234',
         });
+      } else {
+        setIsAuthenticated(false);
+        setStore(null);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
+      setCheckingSession(false);
     }
   }, [slug]);
 
-  // Check saved authentication on mount
+  // Sayfa açıldığında sunucu çerezini kontrol et
   useEffect(() => {
+    fetchPanelData();
+  }, [fetchPanelData]);
+
+  // Sunucu taraflı PIN ile giriş (POST /api/store/[slug]/login)
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(null);
+    setIsLoggingIn(true);
+
     try {
-      const storedAuth = localStorage.getItem(`auth_pin_${slug}`);
-      if (storedAuth && (storedAuth === store.pinCode || storedAuth === '1234')) {
-        setIsAuthenticated(true);
+      const res = await fetch(`/api/store/${slug}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: enteredPin }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setPinError(data.error || 'Geçersiz PIN kodu.');
+        return;
       }
-    } catch (e) {
-      console.error('LocalStorage error:', e);
-    }
-  }, [slug, store.pinCode]);
 
-  const handlePinSubmit = (e?: React.FormEvent, directPin?: string) => {
-    if (e) e.preventDefault();
-    const pinToTest = directPin !== undefined ? directPin : enteredPin;
-    const correctPin = store.pinCode || '1234';
-
-    if (pinToTest === correctPin || pinToTest === '1234') {
+      setEnteredPin('');
       setIsAuthenticated(true);
-      try {
-        localStorage.setItem(`auth_pin_${slug}`, pinToTest);
-      } catch {}
-      setPinError(false);
-    } else {
-      setPinError(true);
+      if (data.mustChangePin) {
+        setMustChangePin(true);
+      }
+      fetchPanelData();
+    } catch {
+      setPinError('Bağlantı hatası oluştu.');
+    } finally {
+      setIsLoggingIn(false);
     }
+  };
+
+  // Zorunlu 6+ Hane Yeni PIN Belirleme (POST /api/store/[slug]/change-pin)
+  const handleChangePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePinError(null);
+
+    if (newPin.trim().length < 6) {
+      setChangePinError('Yeni PIN kodu en az 6 haneli olmalıdır.');
+      return;
+    }
+
+    if (newPin !== newPinConfirm) {
+      setChangePinError('Girdiğiniz PIN kodları birbiriyle uyuşmuyor.');
+      return;
+    }
+
+    setIsChangingPin(true);
+    try {
+      const res = await fetch(`/api/store/${slug}/change-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPin: newPin.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setChangePinError(data.error || 'PIN güncellenemedi.');
+        return;
+      }
+
+      showToast('Yeni PIN kodunuz başarıyla kaydedildi! 🔒');
+      setMustChangePin(false);
+      setNewPin('');
+      setNewPinConfirm('');
+      fetchPanelData();
+    } catch {
+      setChangePinError('PIN güncellenirken hata oluştu.');
+    } finally {
+      setIsChangingPin(false);
+    }
+  };
+
+  // Güvenli Çıkış (POST /api/auth/logout)
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    setIsAuthenticated(false);
+    setStore(null);
+    setMustChangePin(false);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,7 +351,8 @@ export default function SellerPanelClient({
         setProdImageUrl(data.url);
         showToast('Fotoğraf başarıyla yüklendi! 📸');
       } else {
-        showToast('Fotoğraf yüklenemedi');
+        const err = await res.json();
+        showToast(err.error || 'Fotoğraf yüklenemedi');
       }
     } catch {
       showToast('Yükleme sırasında hata oluştu');
@@ -274,7 +363,6 @@ export default function SellerPanelClient({
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!store) return;
     if (!prodName || !prodPrice || !prodImageUrl) {
       showToast('Lütfen ürün adı, fiyat ve fotoğraf ekleyin.');
       return;
@@ -286,7 +374,6 @@ export default function SellerPanelClient({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        storeId: store.id,
         name: prodName.trim(),
         category: prodCategory,
         price: Number(prodPrice),
@@ -305,7 +392,10 @@ export default function SellerPanelClient({
       setProdPrice('');
       setProdComparePrice('');
       setProdImageUrl('');
-      fetchStore();
+      fetchPanelData();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Ürün eklenemedi');
     }
   };
 
@@ -317,7 +407,7 @@ export default function SellerPanelClient({
     });
     if (res.ok) {
       showToast(`Sipariş durumu "${STATUS_META[status]?.label || status}" yapıldı.`);
-      fetchStore();
+      fetchPanelData();
     }
   };
 
@@ -336,15 +426,14 @@ export default function SellerPanelClient({
       ),
     });
     if (res.ok) {
-      fetchStore();
+      fetchPanelData();
     }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!store) return;
 
-    const res = await fetch(`/api/store/${store.slug}`, {
+    const res = await fetch(`/api/store/${slug}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
@@ -352,14 +441,23 @@ export default function SellerPanelClient({
 
     if (res.ok) {
       showToast('Mağaza ayarları kaydedildi!');
-      try {
-        localStorage.setItem(`auth_pin_${slug}`, settings.pinCode);
-      } catch {}
-      fetchStore();
+      fetchPanelData();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Ayarlar kaydedilemedi');
     }
   };
 
-  // Instant PIN Lock Gate rendered directly without blank screen
+  // Sayfa ilk kontrol edilirken minik zarif yükleyici
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
+        <RefreshCw className="w-8 h-8 text-[#78695e] animate-spin" />
+      </div>
+    );
+  }
+
+  // 1. EKRAN: GÜVENLİ PIN GİRİŞİ (SSR Sızıntısı Yok, Şifre İpucu Yok)
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#f7f4ee] flex items-center justify-center p-4 font-sans text-[#33261f]">
@@ -369,54 +467,123 @@ export default function SellerPanelClient({
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-[#33261f]">{store.name}</h2>
+            <h2 className="text-xl font-bold text-[#33261f]">{publicStore.name}</h2>
             <p className="text-xs text-[#78695e] mt-1">
-              Satıcı yönetim paneline erişmek için 4 haneli PIN kodunuzu girin.
+              Satıcı yönetim paneline erişmek için PIN kodunuzu girin.
             </p>
           </div>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <input
                 type="password"
-                maxLength={6}
+                maxLength={10}
                 autoFocus
-                placeholder="PIN Kodu (Varsayılan: 1234)"
+                placeholder="PIN Kodunuz"
                 value={enteredPin}
                 onChange={(e) => setEnteredPin(e.target.value)}
                 className="w-full text-center text-2xl font-mono font-bold tracking-widest py-3 px-4 bg-[#fdfcf9] border border-[#e5dcce] rounded-2xl text-[#33261f] outline-none focus:border-[#8c5f4a] shadow-inner"
               />
               {pinError && (
                 <p className="text-xs text-[#783e35] mt-2 font-semibold">
-                  Hatalı PIN kodu! (Varsayılan: 1234)
+                  {pinError}
                 </p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs cursor-pointer transition"
+              disabled={isLoggingIn || !enteredPin}
+              className="w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs cursor-pointer transition disabled:opacity-50"
             >
-              Giriş Yap
-            </button>
-
-            {/* Quick 1-click test entry button */}
-            <button
-              type="button"
-              onClick={() => handlePinSubmit(undefined, store.pinCode || '1234')}
-              className="w-full py-2.5 rounded-xl font-semibold text-xs bg-[#f2ece1] hover:bg-[#eae3d6] text-[#6d5a4e] border border-[#e5dcce] cursor-pointer transition"
-            >
-              ⚡ Hızlı Giriş ({store.pinCode || '1234'})
+              {isLoggingIn ? 'Doğrulanıyor...' : 'Giriş Yap'}
             </button>
           </form>
 
-          <div className="pt-2 border-t border-[#f2ece1] text-[11px] text-[#9e8e82] flex items-center justify-between">
-            <Link href={`/${store.slug}`} className="hover:underline text-[#78695e]">
+          <div className="pt-2 border-t border-[#f2ece1] text-[11px] text-[#9e8e82]">
+            <Link href={`/${publicStore.slug}`} className="hover:underline text-[#78695e]">
               ← Vitrine Dön
             </Link>
-            <span>Varsayılan PIN: <strong>{store.pinCode || '1234'}</strong></span>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // 2. EKRAN: ZORUNLU YENİ PIN BELİRLEME (Eski sızan PIN'ler için zorunlu kural)
+  if (mustChangePin) {
+    return (
+      <div className="min-h-screen bg-[#f7f4ee] flex items-center justify-center p-4 font-sans text-[#33261f]">
+        <div className="bg-white border border-[#e8dfcf] rounded-3xl max-w-md w-full p-7 sm:p-8 space-y-6 shadow-sm">
+          <div className="w-16 h-16 rounded-3xl bg-[#fdf0ee] text-[#b94a38] flex items-center justify-center mx-auto border border-[#f5c7c1]">
+            <KeyRound className="w-8 h-8" />
+          </div>
+
+          <div className="text-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#b94a38] bg-[#fdf0ee] px-2.5 py-0.5 rounded-full border border-[#f5c7c1]">
+              Güvenlik Güncellemesi
+            </span>
+            <h2 className="text-xl font-bold text-[#33261f] mt-3">Yeni Güvenli PIN Belirleyin</h2>
+            <p className="text-xs text-[#78695e] mt-1.5 leading-relaxed">
+              Hesap güvenliğinizi korumak amacıyla eski varsayılan PIN kodları geçersiz kılınmıştır. Lütfen yalnızca sizin bileceğiniz <strong>en az 6 haneli</strong> yeni bir PIN kodu belirleyin.
+            </p>
+          </div>
+
+          <form onSubmit={handleChangePin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                Yeni PIN Kodu (En az 6 karakter) *
+              </label>
+              <input
+                type="password"
+                required
+                maxLength={12}
+                placeholder="Örn: 582941"
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                className="w-full text-center text-xl font-mono font-bold tracking-widest py-2.5 px-4 bg-[#fdfcf9] border border-[#ded4c3] rounded-2xl text-[#33261f] outline-none focus:border-[#8b634d]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                Yeni PIN Kodu (Tekrar) *
+              </label>
+              <input
+                type="password"
+                required
+                maxLength={12}
+                placeholder="Tekrar girin"
+                value={newPinConfirm}
+                onChange={(e) => setNewPinConfirm(e.target.value)}
+                className="w-full text-center text-xl font-mono font-bold tracking-widest py-2.5 px-4 bg-[#fdfcf9] border border-[#ded4c3] rounded-2xl text-[#33261f] outline-none focus:border-[#8b634d]"
+              />
+            </div>
+
+            {changePinError && (
+              <p className="text-xs text-[#b94a38] font-semibold text-center">
+                {changePinError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isChangingPin || newPin.length < 6}
+              className="w-full py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-[#312925] hover:bg-[#1e1916] text-[#f7f4ee] shadow-xs cursor-pointer transition disabled:opacity-50"
+            >
+              {isChangingPin ? 'Kaydediliyor...' : 'Yeni PIN Kodunu Kaydet ve Panele Geç'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. EKRAN: YETKİLİ VE GÜVENLİ SATICI PANELİ
+  if (!store) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
+        <RefreshCw className="w-8 h-8 text-[#78695e] animate-spin" />
       </div>
     );
   }
@@ -440,7 +607,7 @@ export default function SellerPanelClient({
           <div className="flex items-center gap-2 max-w-3xl">
             <AlertCircle className="w-4 h-4 text-[#bf6d37] shrink-0" />
             <span>
-              <strong>Dikkat: Test WhatsApp Numarası Kayıtlı (+90 555 123 45 67).</strong> Müşteri sipariş mesajlarının kendi telefonunuza ulaşması için numaranızı kaydedin.
+              <strong>Dikkat: Test WhatsApp Numarası Kayıtlı.</strong> Sipariş mesajlarının gerçek telefonunuza ulaşması için Mağaza Ayarları sekmesinden numaranızı kaydedin.
             </span>
           </div>
           <button
@@ -502,16 +669,12 @@ export default function SellerPanelClient({
             </Link>
 
             <button
-              onClick={() => {
-                try {
-                  localStorage.removeItem(`auth_pin_${slug}`);
-                } catch {}
-                setIsAuthenticated(false);
-              }}
-              className="text-xs text-[#9e8e82] hover:text-[#783e35] px-2 py-2 transition"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1 text-xs text-[#9e8e82] hover:text-[#783e35] px-2.5 py-2 rounded-xl hover:bg-[#fdf0ee] transition cursor-pointer"
               title="Güvenli Çıkış"
             >
-              Çıkış
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Çıkış</span>
             </button>
           </div>
         </div>
@@ -672,7 +835,7 @@ export default function SellerPanelClient({
                         <span>{uploadingImage ? 'Yükleniyor...' : 'Kamera / Fotoğraf Seç'}</span>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/jpeg,image/png,image/webp"
                           capture="environment"
                           onChange={handleFileUpload}
                           className="hidden"
@@ -1028,19 +1191,6 @@ export default function SellerPanelClient({
                     setSettings({ ...settings, instagramHandle: e.target.value })
                   }
                   className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
-                  Panel Giriş PIN Kodu (4 Hane)
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={settings.pinCode}
-                  onChange={(e) => setSettings({ ...settings, pinCode: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm font-mono text-[#8c5f4a] font-bold outline-none"
                 />
               </div>
 

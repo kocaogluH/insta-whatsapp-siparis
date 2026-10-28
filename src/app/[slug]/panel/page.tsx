@@ -14,7 +14,7 @@ export async function generateMetadata({
   const { slug } = await params;
   return {
     title: `Yönetim Paneli | ${slug} - InstaSipariş`,
-    description: `${slug} butiği satıcı stok ve sipariş yönetim paneli.`,
+    robots: { index: false, follow: false },
   };
 }
 
@@ -26,17 +26,18 @@ export default async function StorePanelPage({
   const { slug } = await params;
   await ensureDemoStore();
 
+  // GÜVENLİK (SSR Sızıntısı Engellendi):
+  // Yalnızca giriş formu için gereken genel mağaza başlık bilgileri seçilir.
+  // pinCode, pinHash, ibanInfo ve orders KESİNLİKLE SEÇİLMEZ VE HTML'E BASILMAZ!
   const store = await prisma.store.findUnique({
     where: { slug },
-    include: {
-      products: {
-        include: { variants: true },
-        orderBy: { createdAt: 'desc' },
-      },
-      orders: {
-        include: { items: true },
-        orderBy: { createdAt: 'desc' },
-      },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      themeColor: true,
+      logoUrl: true,
+      isActive: true,
     },
   });
 
@@ -44,19 +45,5 @@ export default async function StorePanelPage({
     notFound();
   }
 
-  // Format dates to string for serialization
-  const serializedStore = {
-    ...store,
-    createdAt: store.createdAt.toISOString(),
-    products: store.products.map((p) => ({
-      ...p,
-      createdAt: p.createdAt.toISOString(),
-    })),
-    orders: store.orders.map((o) => ({
-      ...o,
-      createdAt: o.createdAt.toISOString(),
-    })),
-  };
-
-  return <SellerPanelClient initialStore={serializedStore} slug={slug} />;
+  return <SellerPanelClient publicStore={store} slug={slug} />;
 }

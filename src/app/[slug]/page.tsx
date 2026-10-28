@@ -65,13 +65,37 @@ export default async function StorePage({
   const { slug } = await params;
   await ensureDemoStore();
 
+  // GÜVENLİK (Vitrin 0 SSR Sızıntısı):
+  // pinCode, pinHash, ibanInfo ve orders KESİNLİKLE SEÇİLMEZ VE HTML'E BASILMAZ!
   const store = await prisma.store.findUnique({
     where: { slug },
-    include: {
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      tagline: true,
+      description: true,
+      logoUrl: true,
+      bannerUrl: true,
+      themeColor: true,
+      whatsappPhone: true,
+      instagramHandle: true,
+      shippingFee: true,
+      freeShippingThreshold: true,
+      address: true,
+      allowStorePickup: true,
+      isActive: true,
       stories: {
         orderBy: { orderIndex: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          imageUrl: true,
+          linkUrl: true,
+        },
       },
       products: {
+        where: { isActive: true },
         include: { variants: true },
         orderBy: { createdAt: 'desc' },
       },

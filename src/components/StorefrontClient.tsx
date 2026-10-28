@@ -72,7 +72,7 @@ export interface StoreType {
   freeShippingThreshold: number;
   address: string | null;
   allowStorePickup: boolean;
-  ibanInfo: string | null;
+  ibanInfo?: string | null;
   stories: StoryType[];
   products: ProductType[];
 }
@@ -120,6 +120,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     messageText: string;
     targetUrl: string;
     copied: boolean;
+    ibanInfo?: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -297,9 +298,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         }),
       });
 
-      if (!res.ok) throw new Error('Sipariş kaydedilemedi');
+      const orderRes = await res.json();
+      if (!res.ok) throw new Error(orderRes.error || 'Sipariş kaydedilemedi');
 
-      const savedOrder = await res.json();
+      const savedOrder = orderRes.order || orderRes;
+      const returnedIban = orderRes.ibanInfo || store.ibanInfo || null;
 
       const messageText = buildOrderMessage({
         orderNumber: savedOrder.orderNumber,
@@ -313,11 +316,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         deliveryType,
         paymentMethod,
         items: cart,
-        subtotal,
-        shippingCost,
-        totalAmount,
+        subtotal: savedOrder.subtotal || subtotal,
+        shippingCost: savedOrder.shippingCost !== undefined ? savedOrder.shippingCost : shippingCost,
+        totalAmount: savedOrder.totalAmount || totalAmount,
         note: note.trim(),
-        ibanInfo: store.ibanInfo,
+        ibanInfo: returnedIban,
       });
 
       let targetUrl = '';
@@ -346,6 +349,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         messageText,
         targetUrl,
         copied,
+        ibanInfo: returnedIban,
       });
     } catch (err) {
       console.error(err);
@@ -1088,6 +1092,18 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
             ) : (
               <div className="bg-[#edf2eb] border border-[#d4e0d1] rounded-2xl p-3.5 text-xs text-[#415e58]">
                 Hazır sipariş özetiniz WhatsApp üzerinden satıcıya iletilmek üzere açıldı.
+              </div>
+            )}
+
+            {completedOrderModal.ibanInfo && (
+              <div className="bg-[#fdfcf9] border border-[#ded4c3] rounded-2xl p-3.5 text-xs text-[#312925] space-y-1.5">
+                <p className="font-bold text-[#8b634d]">🏦 Havale / EFT Banka Bilgisi:</p>
+                <p className="font-mono font-bold text-xs select-all bg-white p-2 rounded-xl border border-[#ded4c3]">
+                  {completedOrderModal.ibanInfo}
+                </p>
+                <p className="text-[10px] text-[#786c64]">
+                  Lütfen havale açıklamasına <strong>{completedOrderModal.orderNumber}</strong> sipariş numaranızı yazınız.
+                </p>
               </div>
             )}
 

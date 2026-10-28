@@ -23,7 +23,10 @@ model Store {
   address               String?
   allowStorePickup      Boolean     @default(true)
   ibanInfo              String?
-  pinCode               String      @default("1234") // Mağaza sahibinin basit 4 haneli panel giriş şifresi
+  pinCode               String      @default("1234") // Geçiş aşamasında korunuyor, 2. aşamada silinecek
+  pinHash               String?
+  pinVersion            Int         @default(1)
+  mustChangePin         Boolean     @default(true)
   isActive              Boolean     @default(true)
   createdAt             DateTime    @default(now())
   stories               Story[]

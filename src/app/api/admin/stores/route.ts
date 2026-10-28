@@ -1,13 +1,49 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureDemoStore } from '@/lib/ensureSeed';
+import { getAdminSession } from '@/lib/auth';
+import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
-export async function GET() {
+const RESERVED_SLUGS = [
+  'admin',
+  'api',
+  'login',
+  'panel',
+  '_next',
+  'public',
+  'uploads',
+  'auth',
+  'favicon.ico',
+];
+
+export async function GET(req: Request) {
   try {
+    // ÇİFT KATMANLI KONTROL: Route handler içinde admin oturumu doğrula
+    const isAdmin = await getAdminSession();
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'Yetkisiz erişim. Süper admin girişi gereklidir.' },
+        { status: 401 }
+      );
+    }
+
     await ensureDemoStore();
 
     const stores = await prisma.store.findMany({
-      include: {
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        tagline: true,
+        whatsappPhone: true,
+        instagramHandle: true,
+        themeColor: true,
+        mustChangePin: true,
+        isActive: true,
+        createdAt: true,
+        // DİKKAT: pinCode ve pinHash ASLA SEÇİLMEZ (Veri Sızıntısı Koruması)
         _count: {
           select: {
             products: true,
@@ -37,7 +73,7 @@ export async function GET() {
         whatsappPhone: s.whatsappPhone,
         instagramHandle: s.instagramHandle,
         themeColor: s.themeColor,
-        pinCode: s.pinCode,
+        mustChangePin: s.mustChangePin,
         isActive: s.isActive,
         createdAt: s.createdAt,
         productCount: s._count.products,
@@ -55,10 +91,15 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const adminKey = req.headers.get('x-admin-key');
-    if (adminKey !== '1923' && adminKey !== process.env.ADMIN_KEY) {
+    if (!verifyCsrfOrigin(req)) {
+      return csrfErrorResponse();
+    }
+
+    // ÇİFT KATMANLI KONTROL: Route handler içinde admin oturumu doğrula
+    const isAdmin = await getAdminSession();
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Yetkisiz işlem. Geçerli ajans anahtarı gerekli.' },
+        { error: 'Yetkisiz işlem. Süper admin girişi gereklidir.' },
         { status: 401 }
       );
     }
@@ -71,7 +112,6 @@ export async function POST(req: Request) {
       whatsappPhone,
       instagramHandle,
       themeColor,
-      pinCode,
       shippingFee,
       freeShippingThreshold,
       address,
@@ -85,13 +125,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const cleanSlug = slug
+    const cleanSlug = String(slug)
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9_-]/g, '');
 
+    // Rezerve slug kontrolü
+    if (RESERVED_SLUGS.includes(cleanSlug)) {
+      return NextResponse.json(
+        { error: `"${cleanSlug}" sistem tarafından rezerve edilmiş bir isimdir. Lütfen başka bir link seçin.` },
+        { status: 400 }
+      );
+    }
+
     const existing = await prisma.store.findUnique({
       where: { slug: cleanSlug },
+      select: { id: true },
     });
 
     if (existing) {
@@ -101,48 +150,70 @@ export async function POST(req: Request) {
       );
     }
 
-    const cleanPhone = whatsappPhone.replace(/\D/g, '');
+    const cleanPhone = String(whatsappPhone).replace(/\D/g, '');
+
+    // Rastgele 6 haneli geçici PIN üret
+    const temporaryPin = crypto.randomInt(100000, 999999).toString();
+    const pinHash = await bcrypt.hash(temporaryPin, 10);
 
     const newStore = await prisma.store.create({
       data: {
         slug: cleanSlug,
-        name: name.trim(),
-        tagline: tagline?.trim() || null,
+        name: String(name).slice(0, 100).trim(),
+        tagline: tagline ? String(tagline).slice(0, 200).trim() : null,
         description: `${name} resmi online Instagram bio sipariş kataloğu.`,
-        themeColor: themeColor || '#0f172a',
+        themeColor: themeColor || '#3c302a',
         whatsappPhone: cleanPhone.startsWith('90') ? cleanPhone : `90${cleanPhone.replace(/^0/, '')}`,
-        instagramHandle: (instagramHandle || cleanSlug).replace(/^@/, '').trim(),
-        pinCode: pinCode?.trim() || '1234',
+        instagramHandle: (instagramHandle || cleanSlug).replace(/^@/, '').trim().slice(0, 50),
+        pinCode: temporaryPin, // 1. aşama uyumluluğu için korunuyor
+        pinHash: pinHash,
+        pinVersion: 1,
+        mustChangePin: true, // Yeni mağaza ilk girişte PIN değiştirmek zorunda
         shippingFee: Number(shippingFee ?? 49.9),
         freeShippingThreshold: Number(freeShippingThreshold ?? 750),
-        address: address?.trim() || null,
+        address: address ? String(address).slice(0, 300).trim() : null,
         allowStorePickup: allowStorePickup !== false,
         stories: {
           create: [
             {
-              title: '✨ Yeni Sezon',
+              title: 'Yeni Sezon',
               imageUrl:
-                'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=400&q=80',
               orderIndex: 1,
             },
             {
-              title: '🔥 İndirim',
+              title: 'Kombinler',
               imageUrl:
-                'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=400&q=80',
               orderIndex: 2,
             },
             {
-              title: '⭐ Yorumlar',
+              title: 'Keten Seri',
               imageUrl:
-                'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=400&q=80',
+                'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=400&q=80',
               orderIndex: 3,
             },
           ],
         },
       },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        whatsappPhone: true,
+        instagramHandle: true,
+      },
     });
 
-    return NextResponse.json(newStore, { status: 201 });
+    // Geçici PIN admine sadece bu yanıtta BİR KEZ gösterilir!
+    return NextResponse.json(
+      {
+        ...newStore,
+        temporaryPin,
+        message: 'Mağaza açıldı. Geçici PIN satıcıya ilk girişte değiştirmesi için iletilmelidir.',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('POST /api/admin/stores error:', error);
     return NextResponse.json({ error: 'Yeni mağaza açılamadı' }, { status: 500 });
