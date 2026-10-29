@@ -3,22 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { ensureDemoStore } from '@/lib/ensureSeed';
 import { getAdminSession } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
+import { getClientIp, storeCreateLimiter } from '@/lib/ratelimit';
+import { storeCreateSchema } from '@/lib/validations';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
-const RESERVED_SLUGS = [
-  'admin',
-  'api',
-  'login',
-  'panel',
-  '_next',
-  'public',
-  'uploads',
-  'auth',
-  'favicon.ico',
-];
-
-export async function GET(req: Request) {
+export async function GET() {
   try {
     // ÇİFT KATMANLI KONTROL: Route handler içinde admin oturumu doğrula
     const isAdmin = await getAdminSession();
@@ -95,7 +85,7 @@ export async function POST(req: Request) {
       return csrfErrorResponse();
     }
 
-    // ÇİFT KATMANLI KONTROL: Route handler içinde admin oturumu doğrula
+    // 1. Admin Oturumu Doğrulama
     const isAdmin = await getAdminSession();
     if (!isAdmin) {
       return NextResponse.json(
@@ -104,42 +94,30 @@ export async function POST(req: Request) {
       );
     }
 
+    // 2. Hız Sınırı Kontrolü (Saatte en fazla 5 mağaza açma)
+    const ip = getClientIp(req);
+    const limitResult = await storeCreateLimiter.limit(ip);
+    if (!limitResult.success) {
+      return NextResponse.json(
+        { error: 'Kısa süre içinde çok fazla mağaza açma isteği gönderildi. Lütfen daha sonra tekrar deneyin.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
-    const {
-      name,
-      slug,
-      tagline,
-      whatsappPhone,
-      instagramHandle,
-      themeColor,
-      shippingFee,
-      freeShippingThreshold,
-      address,
-      allowStorePickup,
-    } = body;
 
-    if (!name || !slug || !whatsappPhone) {
-      return NextResponse.json(
-        { error: 'Mağaza adı, linki ve WhatsApp numarası zorunludur' },
-        { status: 400 }
-      );
+    // 3. Zod ile Girdi Doğrulama & Slug Kontrolü
+    const parseResult = storeCreateSchema.safeParse(body);
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0]?.message || 'Geçersiz mağaza bilgileri.';
+      return NextResponse.json({ error: firstError }, { status: 400 });
     }
 
-    const cleanSlug = String(slug)
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9_-]/g, '');
+    const validated = parseResult.data;
 
-    // Rezerve slug kontrolü
-    if (RESERVED_SLUGS.includes(cleanSlug)) {
-      return NextResponse.json(
-        { error: `"${cleanSlug}" sistem tarafından rezerve edilmiş bir isimdir. Lütfen başka bir link seçin.` },
-        { status: 400 }
-      );
-    }
-
+    // 4. Benzersiz Slug Kontrolü
     const existing = await prisma.store.findUnique({
-      where: { slug: cleanSlug },
+      where: { slug: validated.slug },
       select: { id: true },
     });
 
@@ -150,7 +128,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const cleanPhone = String(whatsappPhone).replace(/\D/g, '');
+    const cleanPhone = validated.whatsappPhone.startsWith('90')
+      ? validated.whatsappPhone
+      : `90${validated.whatsappPhone.replace(/^0/, '')}`;
 
     // Rastgele 6 haneli geçici PIN üret
     const temporaryPin = crypto.randomInt(100000, 999999).toString();
@@ -158,21 +138,21 @@ export async function POST(req: Request) {
 
     const newStore = await prisma.store.create({
       data: {
-        slug: cleanSlug,
-        name: String(name).slice(0, 100).trim(),
-        tagline: tagline ? String(tagline).slice(0, 200).trim() : null,
-        description: `${name} resmi online Instagram bio sipariş kataloğu.`,
-        themeColor: themeColor || '#3c302a',
-        whatsappPhone: cleanPhone.startsWith('90') ? cleanPhone : `90${cleanPhone.replace(/^0/, '')}`,
-        instagramHandle: (instagramHandle || cleanSlug).replace(/^@/, '').trim().slice(0, 50),
+        slug: validated.slug,
+        name: validated.name,
+        tagline: validated.tagline,
+        description: `${validated.name} resmi online Instagram bio sipariş kataloğu.`,
+        themeColor: validated.themeColor || '#3c302a',
+        whatsappPhone: cleanPhone,
+        instagramHandle: validated.instagramHandle,
         pinCode: temporaryPin, // 1. aşama uyumluluğu için korunuyor
         pinHash: pinHash,
         pinVersion: 1,
         mustChangePin: true, // Yeni mağaza ilk girişte PIN değiştirmek zorunda
-        shippingFee: Number(shippingFee ?? 49.9),
-        freeShippingThreshold: Number(freeShippingThreshold ?? 750),
-        address: address ? String(address).slice(0, 300).trim() : null,
-        allowStorePickup: allowStorePickup !== false,
+        shippingFee: Number(body.shippingFee ?? 49.9),
+        freeShippingThreshold: Number(body.freeShippingThreshold ?? 750),
+        address: body.address ? String(body.address).slice(0, 300).trim() : null,
+        allowStorePickup: body.allowStorePickup !== false,
         stories: {
           create: [
             {

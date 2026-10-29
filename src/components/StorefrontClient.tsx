@@ -34,10 +34,9 @@ export interface StoryType {
 export interface VariantType {
   id: string;
   name: string;
-  sku: string | null;
-  barcode: string | null;
   priceDiff: number;
-  stock: number;
+  inStock: boolean;
+  lowStock: boolean;
 }
 
 export interface ProductType {
@@ -48,17 +47,16 @@ export interface ProductType {
   compareAtPrice: number | null;
   imageUrl: string;
   category: string;
-  sku: string | null;
-  barcode: string | null;
-  stock: number;
   isActive: boolean;
   hideWhenOutOfStock: boolean;
   instagramPostUrl: string | null;
+  inStock: boolean;
+  lowStock: boolean;
   variants: VariantType[];
 }
 
 export interface StoreType {
-  id: string;
+  id?: string;
   slug: string;
   name: string;
   tagline: string | null;
@@ -83,11 +81,9 @@ interface CartItem {
   variantId?: string;
   productName: string;
   variantName?: string;
-  sku?: string | null;
-  barcode?: string | null;
   unitPrice: number;
   quantity: number;
-  maxStock: number;
+  maxLimit: number;
   imageUrl: string;
 }
 
@@ -127,7 +123,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     const initialVars: Record<string, string> = {};
     store.products.forEach((p) => {
       if (p.variants && p.variants.length > 0) {
-        const firstInStock = p.variants.find((v) => v.stock > 0) || p.variants[0];
+        const firstInStock = p.variants.find((v) => v.inStock) || p.variants[0];
         initialVars[p.id] = firstInStock.id;
       }
     });
@@ -162,14 +158,13 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
   const visibleProducts = useMemo(() => {
     return store.products.filter((p) => {
       if (!p.isActive) return false;
-      if (p.hideWhenOutOfStock && p.stock <= 0) return false;
+      if (p.hideWhenOutOfStock && !p.inStock) return false;
       if (selectedCategory !== 'Tümü' && p.category !== selectedCategory) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         return (
           p.name.toLowerCase().includes(q) ||
-          p.sku?.toLowerCase().includes(q) ||
-          p.barcode?.toLowerCase().includes(q)
+          (p.description ? p.description.toLowerCase().includes(q) : false)
         );
       }
       return true;
@@ -183,8 +178,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
       ? product.variants.find((v) => v.id === chosenVariantId) || product.variants[0]
       : undefined;
 
-    const availableStock = variant ? variant.stock : product.stock;
-    if (availableStock <= 0) return;
+    const isInStock = variant ? variant.inStock : product.inStock;
+    if (!isInStock) return;
+
+    const isLow = variant ? variant.lowStock : product.lowStock;
+    const maxLimit = isLow ? 3 : 10;
 
     const cartItemId = variant ? `${product.id}_${variant.id}` : product.id;
     const unitPrice = product.price + (variant ? variant.priceDiff : 0);
@@ -192,7 +190,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     setCart((prev) => {
       const existing = prev.find((i) => i.cartItemId === cartItemId);
       if (existing) {
-        if (existing.quantity >= availableStock) return prev;
+        if (existing.quantity >= maxLimit) return prev;
         return prev.map((i) =>
           i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + 1 } : i
         );
@@ -205,11 +203,9 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
           variantId: variant?.id,
           productName: product.name,
           variantName: variant?.name,
-          sku: variant?.sku || product.sku,
-          barcode: variant?.barcode || product.barcode,
           unitPrice,
           quantity: 1,
-          maxStock: availableStock,
+          maxLimit,
           imageUrl: product.imageUrl,
         },
       ];
@@ -226,7 +222,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
           if (item.cartItemId !== cartItemId) return item;
           const nextQty = item.quantity + delta;
           if (nextQty <= 0) return null;
-          if (nextQty > item.maxStock) return item;
+          if (nextQty > item.maxLimit) return item;
           return { ...item, quantity: nextQty };
         })
         .filter(Boolean) as CartItem[]
@@ -271,7 +267,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          storeId: store.id,
+          storeSlug: store.slug,
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
           customerAddress:
@@ -281,19 +277,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
           deliveryType,
           paymentMethod,
           channel,
-          subtotal,
-          shippingCost,
-          totalAmount,
           note: note.trim(),
           items: cart.map((i) => ({
             productId: i.productId,
-            variantId: i.variantId,
-            productName: i.productName,
-            variantName: i.variantName,
-            sku: i.sku,
-            barcode: i.barcode,
+            variantId: i.variantId || null,
             quantity: i.quantity,
-            unitPrice: i.unitPrice,
           })),
         }),
       });
@@ -539,9 +527,8 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
 
               const effectivePrice =
                 product.price + (currentVariant ? currentVariant.priceDiff : 0);
-              const availableStock = currentVariant ? currentVariant.stock : product.stock;
-              const isOutOfStock = availableStock <= 0;
-              const effectiveSku = currentVariant?.sku || product.sku;
+              const isOutOfStock = currentVariant ? !currentVariant.inStock : !product.inStock;
+              const isLowStock = currentVariant ? currentVariant.lowStock : product.lowStock;
 
               const discountPercent =
                 product.compareAtPrice && product.compareAtPrice > effectivePrice
@@ -556,7 +543,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                 store.whatsappPhone,
                 product.name,
                 effectivePrice,
-                effectiveSku,
+                null,
                 currentVariant?.name
               );
 
@@ -616,7 +603,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                           <div className="flex flex-wrap gap-1">
                             {product.variants.map((v) => {
                               const isSelected = currentVariant?.id === v.id;
-                              const noStock = v.stock <= 0;
+                              const noStock = !v.inStock;
                               return (
                                 <button
                                   key={v.id}

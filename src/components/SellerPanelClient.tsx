@@ -332,14 +332,76 @@ export default function SellerPanelClient({
     setMustChangePin(false);
   };
 
+  // Yükleme öncesi istemci tarafında fotoğrafı max 1600px'e küçültme (Bant genişliği & bellek optimizasyonu)
+  const resizeImageBeforeUpload = (file: File, maxDim = 1600): Promise<File | Blob> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        return resolve(file);
+      }
+
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+
+        if (width <= maxDim && height <= maxDim) {
+          return resolve(file);
+        }
+
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const resized = new File([blob], file.name, {
+                type: file.type || 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(resized);
+            } else {
+              resolve(file);
+            }
+          },
+          file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+          0.88
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingImage(true);
     try {
+      // 1600px boyutuna küçült
+      const optimizedFile = await resizeImageBeforeUpload(file, 1600);
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', optimizedFile);
 
       const res = await fetch('/api/upload', {
         method: 'POST',

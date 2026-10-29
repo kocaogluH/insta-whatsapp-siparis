@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createSellerToken, setSellerSessionCookie } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
+import { getClientIp, checkLoginLock, recordFailedLogin, clearFailedLogins } from '@/lib/ratelimit';
 
 export async function POST(
   req: Request,
@@ -14,6 +15,21 @@ export async function POST(
     }
 
     const { slug } = await params;
+    const ip = getClientIp(req);
+    const lockKey = `${ip}:${slug}`;
+
+    // 1. Kilit Kontrolü (5 Hatalı denemede 15 dakika kilit)
+    const lockStatus = await checkLoginLock(lockKey);
+    if (lockStatus.isLocked) {
+      const remainingMin = Math.ceil(lockStatus.remainingSeconds / 60);
+      return NextResponse.json(
+        {
+          error: `Çok fazla hatalı PIN denemesi yapıldı. Güvenlik nedeniyle hesabınız ${remainingMin} dakika kilitlendi.`,
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { pin } = body;
 
@@ -38,10 +54,17 @@ export async function POST(
     });
 
     if (!store || !store.isActive) {
-      // Zaman-güvenli (timing attack koruması) için dummy hash kontrolü
+      // Zaman-güvenli dummy hash kontrolü
       await bcrypt.compare(pin, '$2b$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZ1234567890dummyhash');
+      const failResult = await recordFailedLogin(lockKey);
+      if (failResult.isLocked) {
+        return NextResponse.json(
+          { error: 'Çok fazla hatalı PIN denemesi yapıldı. Güvenlik nedeniyle hesabınız 15 dakika kilitlendi.' },
+          { status: 429 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Geçersiz giriş bilgileri' },
+        { error: 'Geçersiz giriş bilgileri.' },
         { status: 401 }
       );
     }
@@ -51,7 +74,6 @@ export async function POST(
     if (store.pinHash) {
       isValid = await bcrypt.compare(pin, store.pinHash);
     } else if (store.pinCode) {
-      // Henüz hash'lenmemişse geçici kontrol ve hash oluşturma
       isValid = pin === store.pinCode;
       if (isValid) {
         const hash = await bcrypt.hash(pin, 10);
@@ -63,11 +85,23 @@ export async function POST(
     }
 
     if (!isValid) {
+      const failResult = await recordFailedLogin(lockKey);
+      if (failResult.isLocked) {
+        return NextResponse.json(
+          { error: 'Çok fazla hatalı PIN denemesi yapıldı. Güvenlik nedeniyle hesabınız 15 dakika kilitlendi.' },
+          { status: 429 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Geçersiz giriş bilgileri' },
+        {
+          error: `Geçersiz PIN kodu. Kalan deneme hakkı: ${failResult.remainingAttempts}`,
+        },
         { status: 401 }
       );
     }
+
+    // Başarılı giriş: Hatalı deneme sayacını sıfırla
+    await clearFailedLogins(lockKey);
 
     // JWT token oluştur ve httpOnly, secure, sameSite=strict çereze yaz
     const token = await createSellerToken({

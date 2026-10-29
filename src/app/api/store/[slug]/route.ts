@@ -3,10 +3,15 @@ import { prisma } from '@/lib/prisma';
 import { ensureDemoStore } from '@/lib/ensureSeed';
 import { getSellerSession } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
+import { storeUpdateSchema } from '@/lib/validations';
 
 /**
  * GET /api/store/[slug] - Herkese Açık Vitrin Verisi (Public Catalog)
- * GÜVENLİK: pinCode, pinHash, ibanInfo ve müşteri sipariş verileri KESİNLİKLE DÖNMEZ!
+ * GÜVENLİK & VERİ AZALTMA (DATA MINIMIZATION):
+ * - pinCode, pinHash, ibanInfo, müşteri siparişleri ASLA DÖNMEZ!
+ * - sku, barcode ve tam stok sayıları kaldırılmıştır.
+ * - Müşteriye yalnızca inStock (boolean) ve lowStock (boolean: stok <= 3) döndürülür.
+ * - Mağazanın iç veritabanı ID'si (UUID) gizlenmiştir, slug kullanılır.
  */
 export async function GET(
   _req: Request,
@@ -19,7 +24,6 @@ export async function GET(
     const store = await prisma.store.findUnique({
       where: { slug },
       select: {
-        id: true,
         slug: true,
         name: true,
         tagline: true,
@@ -33,7 +37,7 @@ export async function GET(
         freeShippingThreshold: true,
         address: true,
         allowStorePickup: true,
-        // DİKKAT: pinCode, pinHash, ibanInfo ve orders BİLEREK SEÇİLMEMİŞTİR (KVKK & Finansal Güvenlik)
+        // DİKKAT: id, pinCode, pinHash, ibanInfo ve orders BİLEREK SEÇİLMEMİŞTİR
         stories: {
           orderBy: { orderIndex: 'asc' },
           select: {
@@ -55,9 +59,7 @@ export async function GET(
             compareAtPrice: true,
             imageUrl: true,
             category: true,
-            sku: true,
-            barcode: true,
-            stock: true,
+            stock: true, // Sunucuda inStock / lowStock hesaplamak için seçilir, istemciye gönderilmez
             isActive: true,
             hideWhenOutOfStock: true,
             instagramPostUrl: true,
@@ -65,10 +67,8 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                sku: true,
-                barcode: true,
                 priceDiff: true,
-                stock: true,
+                stock: true, // Sunucuda hesaplanır, istemciye gönderilmez
               },
             },
           },
@@ -80,7 +80,55 @@ export async function GET(
       return NextResponse.json({ error: 'Mağaza bulunamadı' }, { status: 404 });
     }
 
-    return NextResponse.json(store);
+    // Veri Azaltma: Ham stok, SKU, Barkod ve İç ID'leri filtrele
+    const sanitizedProducts = store.products.map((p) => {
+      const inStock = p.stock > 0;
+      const lowStock = p.stock > 0 && p.stock <= 3;
+
+      const sanitizedVariants = p.variants.map((v) => ({
+        id: v.id,
+        name: v.name,
+        priceDiff: v.priceDiff,
+        inStock: v.stock > 0,
+        lowStock: v.stock > 0 && v.stock <= 3,
+      }));
+
+      return {
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        compareAtPrice: p.compareAtPrice,
+        imageUrl: p.imageUrl,
+        category: p.category,
+        isActive: p.isActive,
+        hideWhenOutOfStock: p.hideWhenOutOfStock,
+        instagramPostUrl: p.instagramPostUrl,
+        inStock,
+        lowStock,
+        variants: sanitizedVariants,
+      };
+    });
+
+    const publicStore = {
+      slug: store.slug,
+      name: store.name,
+      tagline: store.tagline,
+      description: store.description,
+      logoUrl: store.logoUrl,
+      bannerUrl: store.bannerUrl,
+      themeColor: store.themeColor,
+      whatsappPhone: store.whatsappPhone,
+      instagramHandle: store.instagramHandle,
+      shippingFee: store.shippingFee,
+      freeShippingThreshold: store.freeShippingThreshold,
+      address: store.address,
+      allowStorePickup: store.allowStorePickup,
+      stories: store.stories,
+      products: sanitizedProducts,
+    };
+
+    return NextResponse.json(publicStore);
   } catch (error) {
     console.error('GET /api/store/[slug] error:', error);
     return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 });
@@ -111,20 +159,27 @@ export async function PATCH(
     }
 
     const body = await req.json();
+    const parseResult = storeUpdateSchema.safeParse(body);
+    if (!parseResult.success) {
+      const err = parseResult.error.issues[0]?.message || 'Geçersiz güncelleme verisi.';
+      return NextResponse.json({ error: err }, { status: 400 });
+    }
+
+    const data = parseResult.data;
 
     const updated = await prisma.store.update({
       where: { id: session.storeId },
       data: {
-        name: body.name ? String(body.name).slice(0, 100) : undefined,
-        tagline: body.tagline !== undefined ? (body.tagline ? String(body.tagline).slice(0, 200) : null) : undefined,
-        description: body.description !== undefined ? (body.description ? String(body.description).slice(0, 1000) : null) : undefined,
-        whatsappPhone: body.whatsappPhone ? String(body.whatsappPhone).replace(/\D/g, '').slice(0, 15) : undefined,
-        instagramHandle: body.instagramHandle !== undefined ? (body.instagramHandle ? String(body.instagramHandle).replace(/^@/, '').slice(0, 50) : '') : undefined,
-        shippingFee: body.shippingFee !== undefined ? Math.max(0, Number(body.shippingFee)) : undefined,
-        freeShippingThreshold: body.freeShippingThreshold !== undefined ? Math.max(0, Number(body.freeShippingThreshold)) : undefined,
-        address: body.address !== undefined ? (body.address ? String(body.address).slice(0, 300) : null) : undefined,
-        allowStorePickup: body.allowStorePickup !== undefined ? Boolean(body.allowStorePickup) : undefined,
-        ibanInfo: body.ibanInfo !== undefined ? (body.ibanInfo ? String(body.ibanInfo).slice(0, 150) : null) : undefined,
+        name: data.name,
+        tagline: data.tagline,
+        description: data.description,
+        whatsappPhone: data.whatsappPhone,
+        instagramHandle: data.instagramHandle,
+        shippingFee: data.shippingFee,
+        freeShippingThreshold: data.freeShippingThreshold,
+        address: data.address,
+        allowStorePickup: data.allowStorePickup,
+        ibanInfo: data.ibanInfo,
       },
       select: {
         id: true,
