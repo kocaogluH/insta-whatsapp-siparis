@@ -46,14 +46,13 @@ export async function POST(
         id: true,
         slug: true,
         pinHash: true,
-        pinCode: true,
         pinVersion: true,
         mustChangePin: true,
         isActive: true,
       },
     });
 
-    if (!store || !store.isActive) {
+    if (!store || !store.isActive || !store.pinHash) {
       // Zaman-güvenli dummy hash kontrolü
       await bcrypt.compare(pin, '$2b$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZ1234567890dummyhash');
       const failResult = await recordFailedLogin(lockKey);
@@ -69,20 +68,8 @@ export async function POST(
       );
     }
 
-    // pinHash varsa onunla, yoksa pinCode ile doğrula
-    let isValid = false;
-    if (store.pinHash) {
-      isValid = await bcrypt.compare(pin, store.pinHash);
-    } else if (store.pinCode) {
-      isValid = pin === store.pinCode;
-      if (isValid) {
-        const hash = await bcrypt.hash(pin, 10);
-        await prisma.store.update({
-          where: { id: store.id },
-          data: { pinHash: hash },
-        });
-      }
-    }
+    // pinHash ile güvenli bcrypt doğrulaması
+    const isValid = await bcrypt.compare(pin, store.pinHash);
 
     if (!isValid) {
       const failResult = await recordFailedLogin(lockKey);

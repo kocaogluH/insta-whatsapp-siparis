@@ -23,7 +23,6 @@ model Store {
   address               String?
   allowStorePickup      Boolean     @default(true)
   ibanInfo              String?
-  pinCode               String      @default("1234")
   pinHash               String?
   pinVersion            Int         @default(1)
   mustChangePin         Boolean     @default(true)

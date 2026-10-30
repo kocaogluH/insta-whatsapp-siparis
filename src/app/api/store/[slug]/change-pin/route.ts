@@ -42,7 +42,6 @@ export async function POST(
       where: { id: session.storeId },
       data: {
         pinHash: newHash,
-        pinCode: cleanPin, // 1. aşama geçiş uyumluluğu için korunuyor
         pinVersion: { increment: 1 },
         mustChangePin: false,
       },

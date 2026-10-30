@@ -145,7 +145,6 @@ export async function POST(req: Request) {
         themeColor: validated.themeColor || '#3c302a',
         whatsappPhone: cleanPhone,
         instagramHandle: validated.instagramHandle,
-        pinCode: temporaryPin, // 1. aşama uyumluluğu için korunuyor
         pinHash: pinHash,
         pinVersion: 1,
         mustChangePin: true, // Yeni mağaza ilk girişte PIN değiştirmek zorunda

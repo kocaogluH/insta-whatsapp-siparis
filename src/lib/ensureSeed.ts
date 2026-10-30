@@ -56,7 +56,7 @@ export async function ensureDemoStore() {
       await prisma.store.update({
         where: { id: existing.id },
         data: {
-          pinHash: bcrypt.hashSync(existing.pinCode || '1234', 10),
+          pinHash: bcrypt.hashSync('1234', 10),
           mustChangePin: true,
           pinVersion: 1,
         },
@@ -83,7 +83,6 @@ export async function ensureDemoStore() {
       freeShippingThreshold: 1000.0,
       address: 'Teşvikiye Mah. Valikonağı Cad. No:42 Şişli/İstanbul',
       allowStorePickup: true,
-      pinCode: '1234',
       pinHash: bcrypt.hashSync('1234', 10),
       pinVersion: 1,
       mustChangePin: true,

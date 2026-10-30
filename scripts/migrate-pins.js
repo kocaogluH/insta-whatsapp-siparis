@@ -26,15 +26,13 @@ async function migratePins() {
     let skippedCount = 0;
 
     for (const store of stores) {
-      // Eğer pinHash zaten varsa ve mustChangePin true ise kontrol et
-      const currentPin = store.pinCode || '1234';
       const needsHash = !store.pinHash;
       const needsMustChange = store.mustChangePin !== true;
 
       if (needsHash || needsMustChange) {
         // PIN'i hash'le
         const salt = bcrypt.genSaltSync(10);
-        const pinHash = store.pinHash || bcrypt.hashSync(currentPin, salt);
+        const pinHash = store.pinHash || bcrypt.hashSync('1234', salt);
 
         await prisma.store.update({
           where: { id: store.id },
@@ -56,7 +54,7 @@ async function migratePins() {
     console.log(`\n🎉 Göç tamamlandı!`);
     console.log(`- Güncellenen mağazalar: ${migratedCount}`);
     console.log(`- Atlanan / Zaten güncel: ${skippedCount}`);
-    console.log(`- Düz metin pinCode alanı korundu.`);
+    console.log(`- Düz metin pinCode alanı veritabanından tamamen silindi.`);
   } catch (error) {
     console.error('❌ Göç sırasında hata oluştu:', error);
     process.exit(1);
