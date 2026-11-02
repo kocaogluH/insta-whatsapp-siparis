@@ -107,7 +107,7 @@ export async function POST(
   } catch (error) {
     console.error('POST /api/store/[slug]/login error:', error);
     return NextResponse.json(
-      { error: 'Giriş işlemi sırasında bir hata oluştu', detail: error instanceof Error ? error.message : String(error) },
+      { error: 'Giriş işlemi sırasında bir hata oluştu' },
       { status: 500 }
     );
   }
