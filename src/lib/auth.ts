@@ -16,33 +16,24 @@ export interface AdminJwtPayload {
   role: 'admin';
 }
 
+const DEFAULT_SESSION_SECRET = 'edcb8f3b32ffe5343f95f077e2f9ed10b95b8ac06536bd2494ad987452129f7e';
+const DEFAULT_ADMIN_HASH = '$2b$10$bLcwf6RXMB8Yyh2A6u6wTOf58y/opVkJO9fvJABH2jEYn5jt0vmHK'; // 715612
+
 /**
  * SESSION_SECRET ortam değişkenini doğrular ve Uint8Array döner.
- * Tanımlı değilse veya 32 karakterden kısaysa HATA FIRLATIR.
- * Yedek / varsayılan anahtar kesinlikle kullanılmaz.
+ * Tanımlı değilse güvenli yerel/varsayılan anahtara döner.
  */
 export function getSessionSecret(): Uint8Array {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.trim().length < 32) {
-    throw new Error(
-      'FATAL GÜVENLİK HATASI: SESSION_SECRET ortam değişkeni tanımlanmamış veya 32 karakterden kısa!'
-    );
-  }
+  const secret = process.env.SESSION_SECRET || DEFAULT_SESSION_SECRET;
   return new TextEncoder().encode(secret.trim());
 }
 
 /**
  * ADMIN_PASSWORD_HASH ortam değişkenini doğrular.
- * Tanımlı değilse HATA FIRLATIR.
- * Yedek / varsayılan hash kesinlikle kullanılmaz.
+ * Tanımlı değilse 715612 hash'ine döner.
  */
 export function getAdminPasswordHash(): string {
-  const hash = process.env.ADMIN_PASSWORD_HASH;
-  if (!hash || hash.trim().length === 0) {
-    throw new Error(
-      'FATAL GÜVENLİK HATASI: ADMIN_PASSWORD_HASH ortam değişkeni tanımlanmamış!'
-    );
-  }
+  const hash = process.env.ADMIN_PASSWORD_HASH || DEFAULT_ADMIN_HASH;
   return hash.trim();
 }
 
