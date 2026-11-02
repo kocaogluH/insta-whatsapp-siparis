@@ -56,8 +56,8 @@ export async function ensureDemoStore() {
       await prisma.store.update({
         where: { id: existing.id },
         data: {
-          pinHash: bcrypt.hashSync('1234', 10),
-          mustChangePin: true,
+          pinHash: bcrypt.hashSync('715612', 10),
+          mustChangePin: false,
           pinVersion: 1,
         },
       });
@@ -83,9 +83,9 @@ export async function ensureDemoStore() {
       freeShippingThreshold: 1000.0,
       address: 'Teşvikiye Mah. Valikonağı Cad. No:42 Şişli/İstanbul',
       allowStorePickup: true,
-      pinHash: bcrypt.hashSync('1234', 10),
+      pinHash: bcrypt.hashSync('715612', 10),
       pinVersion: 1,
-      mustChangePin: true,
+      mustChangePin: false,
       ibanInfo: 'TR12 0006 2000 0000 0123 4567 89 (Nişantaşı Butik Tekstil)',
       stories: {
         create: DISTINCT_STORIES,
