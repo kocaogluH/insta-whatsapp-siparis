@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAdminPassword, createAdminToken, setAdminSessionCookie } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
-import { getClientIp, checkLoginLock, recordFailedLogin, clearFailedLogins } from '@/lib/ratelimit';
+import { getClientIp, consumeLoginAttempt, clearFailedLogins } from '@/lib/ratelimit';
 
 export async function POST(req: Request) {
   try {
@@ -12,23 +12,23 @@ export async function POST(req: Request) {
     const ip = getClientIp(req);
     const lockKey = `admin:${ip}`;
 
-    // 1. Kilit Kontrolü
-    const lockStatus = await checkLoginLock(lockKey);
-    if (lockStatus.failClosed) {
+    // (1) redis.incr ile deneme hakkı al
+    const attemptResult = await consumeLoginAttempt(lockKey);
+    if (attemptResult.failClosed) {
       return NextResponse.json(
         { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
         { status: 503 }
       );
     }
 
-    if (lockStatus.isLocked) {
-      const retryAfter = lockStatus.remainingSeconds > 0 ? lockStatus.remainingSeconds : 900;
+    // (2) Sayaç > limit ise doğrulamaya girmeden 429 dön
+    if (!attemptResult.allowed) {
       return NextResponse.json(
         { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
         {
           status: 429,
           headers: {
-            'Retry-After': String(retryAfter),
+            'Retry-After': String(attemptResult.retryAfter || 900),
           },
         }
       );
@@ -52,26 +52,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // crypto.timingSafeEqual ile zaman-güvenli şifre karşılaştırması
+    // (3) Ancak ondan sonra şifre/PIN doğrula
     const isValid = verifyAdminPassword(password);
 
     if (!isValid) {
-      const failResult = await recordFailedLogin(lockKey);
-      if (failResult.failClosed) {
-        return NextResponse.json(
-          { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
-          { status: 503 }
-        );
-      }
-
-      if (failResult.isLocked) {
-        const retryAfter = failResult.remainingSeconds > 0 ? failResult.remainingSeconds : 900;
+      // 5. deneme de hatalıysa doğrudan kilit mesajı ve 429 dön
+      if (attemptResult.attempts >= 5) {
         return NextResponse.json(
           { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
           {
             status: 429,
             headers: {
-              'Retry-After': String(retryAfter),
+              'Retry-After': String(attemptResult.retryAfter || 900),
             },
           }
         );
@@ -79,13 +71,13 @@ export async function POST(req: Request) {
 
       return NextResponse.json(
         {
-          error: `Geçersiz yönetici bilgileri. Kalan deneme hakkı: ${failResult.remainingAttempts}`,
+          error: `Geçersiz yönetici bilgileri. Kalan deneme hakkı: ${attemptResult.remainingAttempts}`,
         },
         { status: 401 }
       );
     }
 
-    // Başarılı giriş: Hatalı deneme sayacını sıfırla
+    // (4) Doğruysa clearFailedLogins ile sayacı sıfırla
     await clearFailedLogins(lockKey);
 
     // 2 saatlik admin JWT oluştur ve httpOnly çereze yaz

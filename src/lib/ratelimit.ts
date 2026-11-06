@@ -104,120 +104,92 @@ export const storeCreateLimiter = sharedRedis
 /**
  * ==============================================================================
  * BRUTE-FORCE GİRİŞ KİLİTLEME SİSTEMİ (Fail-Closed, Upstash Redis)
- * Kural: Aynı IP + aynı hedef (admin veya butik slug'ı) için 5 yanlış denemede
- * 15 dakika boyunca HTTP 429 ve Retry-After başlığı döner.
- * Başarılı girişte sayaç sıfırlanır.
- * Redis erişilemezse istek reddedilir (fail-closed) ve hata loglanır.
+ * Sıralama Garantisi:
+ * (1) redis.incr ile atomik deneme hakkı al
+ * (2) sayaç > limit (5) ise doğrulamaya girmeden 429 dön
+ * (3) ancak ondan sonra şifre/PIN doğrula
+ * (4) doğruysa clearFailedLogins ile sayacı sıfırla
  * ==============================================================================
  */
 
-export interface LoginLockCheckResult {
-  isLocked: boolean;
-  remainingSeconds: number;
-  failClosed?: boolean;
-}
-
-export interface LoginFailRecordResult {
-  isLocked: boolean;
+export interface ConsumeAttemptResult {
+  allowed: boolean;
+  attempts: number;
   remainingAttempts: number;
-  remainingSeconds: number;
+  retryAfter: number;
   failClosed?: boolean;
 }
 
 /**
- * Giriş öncesi kilit kontrolü
+ * (1) redis.incr ile atomik deneme hakkı alma
+ * (2) sayaç > limit (5) ise doğrulamaya girmeden 429 için kilit bilgisi dönme
  */
-export async function checkLoginLock(key: string): Promise<LoginLockCheckResult> {
-  const redis = getRedisClient();
-  if (!redis) {
-    console.error(`[RateLimit] Redis yapılandırılmamış veya erişilemiyor (fail-closed). Hedef anahtar: ${key}`);
-    return { isLocked: false, remainingSeconds: 0, failClosed: true };
-  }
-
-  try {
-    const attemptsKey = `ratelimit:login:attempts:${key}`;
-    const legacyLockKey = `ratelimit:login:lock:${key}`;
-
-    const [attempts, attemptsTtl, legacyLockTtl] = await Promise.all([
-      redis.get<number>(attemptsKey),
-      redis.ttl(attemptsKey),
-      redis.ttl(legacyLockKey),
-    ]);
-
-    // Geriye dönük uyumluluk: eski kilit anahtarı aktifse
-    if (legacyLockTtl > 0) {
-      return { isLocked: true, remainingSeconds: legacyLockTtl, failClosed: false };
-    }
-
-    // Atomik sayaç 5 veya üzerindeyse ve TTL süresi devam ediyorsa kilitli
-    if (attempts !== null && Number(attempts) >= 5 && attemptsTtl > 0) {
-      return { isLocked: true, remainingSeconds: attemptsTtl, failClosed: false };
-    }
-
-    return { isLocked: false, remainingSeconds: 0, failClosed: false };
-  } catch (error) {
-    console.error(`[RateLimit] Redis checkLoginLock hatası (fail-closed). Hedef anahtar: ${key}:`, error);
-    return { isLocked: false, remainingSeconds: 0, failClosed: true };
-  }
-}
-
-/**
- * Hatalı giriş kaydetme (Atomik redis.incr, ilk artışta expire ve 5 sınırında 15 dk kilit)
- */
-export async function recordFailedLogin(key: string): Promise<LoginFailRecordResult> {
+export async function consumeLoginAttempt(key: string): Promise<ConsumeAttemptResult> {
   const maxAttempts = 5;
   const lockDurationSec = 15 * 60; // 900 saniye (15 dakika)
 
   const redis = getRedisClient();
   if (!redis) {
     console.error(`[RateLimit] Redis yapılandırılmamış veya erişilemiyor (fail-closed). Hedef anahtar: ${key}`);
-    return { isLocked: false, remainingAttempts: 0, remainingSeconds: 0, failClosed: true };
+    return {
+      allowed: false,
+      attempts: 0,
+      remainingAttempts: 0,
+      retryAfter: lockDurationSec,
+      failClosed: true,
+    };
   }
 
   try {
     const attemptsKey = `ratelimit:login:attempts:${key}`;
 
-    // 1. Atomik sayaç artışı (redis.incr - Okuma ve yazma tek adımda atomik yapılır)
+    // 1. Atomik sayaç artışı (redis.incr ile deneme hakkı al)
     const attempts = await redis.incr(attemptsKey);
 
-    // 2. İlk artışta 15 dakikalık (900 saniye) expire ayarla
+    // İlk artışta 15 dakikalık (900s) expire ayarla
     if (attempts === 1) {
       await redis.expire(attemptsKey, lockDurationSec);
     } else if (attempts === maxAttempts) {
-      // 5. hatalı denemede kilit süresini tam 15 dakika olarak tazele
+      // 5. denemede 15 dakikalık süreyi yenile
       await redis.expire(attemptsKey, lockDurationSec);
     } else {
-      // Herhangi bir ağ/bağlantı yarışında expire atanmamış kalmasını önle
       const currentTtl = await redis.ttl(attemptsKey);
       if (currentTtl === -1) {
         await redis.expire(attemptsKey, lockDurationSec);
       }
     }
 
-    // Kalan kilit süresini öğren
     const ttl = await redis.ttl(attemptsKey);
-    const remainingSec = ttl > 0 ? ttl : lockDurationSec;
+    const retryAfter = ttl > 0 ? ttl : lockDurationSec;
 
-    // 3. Eşzamanlı istek koruması: Sayaç 5 veya üzerindeyse doğrudan kilitli dön
-    // Anahtar ASLA silinmez; böylece eşzamanlı gelen 6., 7., vb. istekler sayacı sıfırlayamaz veya sınırı aşamaz.
-    if (attempts >= maxAttempts) {
+    // 2. Sayaç > limit (5) ise doğrulamaya girmeden engelle
+    if (attempts > maxAttempts) {
       return {
-        isLocked: true,
+        allowed: false,
+        attempts,
         remainingAttempts: 0,
-        remainingSeconds: remainingSec,
+        retryAfter,
         failClosed: false,
       };
     }
 
+    // 1..5 arası: doğrulama yapılabilir
     return {
-      isLocked: false,
-      remainingAttempts: maxAttempts - attempts,
-      remainingSeconds: 0,
+      allowed: true,
+      attempts,
+      remainingAttempts: Math.max(0, maxAttempts - attempts),
+      retryAfter,
       failClosed: false,
     };
   } catch (error) {
-    console.error(`[RateLimit] Redis recordFailedLogin hatası (fail-closed). Hedef anahtar: ${key}:`, error);
-    return { isLocked: false, remainingAttempts: 0, remainingSeconds: 0, failClosed: true };
+    console.error(`[RateLimit] Redis consumeLoginAttempt hatası (fail-closed). Hedef anahtar: ${key}:`, error);
+    return {
+      allowed: false,
+      attempts: 0,
+      remainingAttempts: 0,
+      retryAfter: lockDurationSec,
+      failClosed: true,
+    };
   }
 }
 

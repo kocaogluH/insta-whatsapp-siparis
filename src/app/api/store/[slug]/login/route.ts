@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createSellerToken, setSellerSessionCookie } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
-import { getClientIp, checkLoginLock, recordFailedLogin, clearFailedLogins } from '@/lib/ratelimit';
+import { getClientIp, consumeLoginAttempt, clearFailedLogins } from '@/lib/ratelimit';
 
 export async function POST(
   req: Request,
@@ -18,23 +18,23 @@ export async function POST(
     const ip = getClientIp(req);
     const lockKey = `store:${slug}:${ip}`;
 
-    // 1. Kilit Kontrolü (5 Hatalı denemede 15 dakika kilit)
-    const lockStatus = await checkLoginLock(lockKey);
-    if (lockStatus.failClosed) {
+    // (1) redis.incr ile deneme hakkı al
+    const attemptResult = await consumeLoginAttempt(lockKey);
+    if (attemptResult.failClosed) {
       return NextResponse.json(
         { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
         { status: 503 }
       );
     }
 
-    if (lockStatus.isLocked) {
-      const retryAfter = lockStatus.remainingSeconds > 0 ? lockStatus.remainingSeconds : 900;
+    // (2) Sayaç > limit ise doğrulamaya girmeden 429 dön
+    if (!attemptResult.allowed) {
       return NextResponse.json(
         { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
         {
           status: 429,
           headers: {
-            'Retry-After': String(retryAfter),
+            'Retry-After': String(attemptResult.retryAfter || 900),
           },
         }
       );
@@ -50,6 +50,7 @@ export async function POST(
       );
     }
 
+    // (3) Ancak ondan sonra şifre/PIN doğrula
     const store = await prisma.store.findUnique({
       where: { slug },
       select: {
@@ -65,29 +66,21 @@ export async function POST(
     if (!store || !store.isActive || !store.pinHash) {
       // Zaman-güvenli dummy hash kontrolü
       await bcrypt.compare(pin, '$2b$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZ1234567890dummyhash');
-      const failResult = await recordFailedLogin(lockKey);
-      if (failResult.failClosed) {
-        return NextResponse.json(
-          { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
-          { status: 503 }
-        );
-      }
 
-      if (failResult.isLocked) {
-        const retryAfter = failResult.remainingSeconds > 0 ? failResult.remainingSeconds : 900;
+      if (attemptResult.attempts >= 5) {
         return NextResponse.json(
           { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
           {
             status: 429,
             headers: {
-              'Retry-After': String(retryAfter),
+              'Retry-After': String(attemptResult.retryAfter || 900),
             },
           }
         );
       }
 
       return NextResponse.json(
-        { error: `Geçersiz giriş bilgileri. Kalan deneme hakkı: ${failResult.remainingAttempts}` },
+        { error: `Geçersiz giriş bilgileri. Kalan deneme hakkı: ${attemptResult.remainingAttempts}` },
         { status: 401 }
       );
     }
@@ -96,22 +89,13 @@ export async function POST(
     const isValid = await bcrypt.compare(pin, store.pinHash);
 
     if (!isValid) {
-      const failResult = await recordFailedLogin(lockKey);
-      if (failResult.failClosed) {
-        return NextResponse.json(
-          { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
-          { status: 503 }
-        );
-      }
-
-      if (failResult.isLocked) {
-        const retryAfter = failResult.remainingSeconds > 0 ? failResult.remainingSeconds : 900;
+      if (attemptResult.attempts >= 5) {
         return NextResponse.json(
           { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
           {
             status: 429,
             headers: {
-              'Retry-After': String(retryAfter),
+              'Retry-After': String(attemptResult.retryAfter || 900),
             },
           }
         );
@@ -119,13 +103,13 @@ export async function POST(
 
       return NextResponse.json(
         {
-          error: `Geçersiz PIN kodu. Kalan deneme hakkı: ${failResult.remainingAttempts}`,
+          error: `Geçersiz PIN kodu. Kalan deneme hakkı: ${attemptResult.remainingAttempts}`,
         },
         { status: 401 }
       );
     }
 
-    // Başarılı giriş: Hatalı deneme sayacını sıfırla
+    // (4) Doğruysa clearFailedLogins ile sayacı sıfırla
     await clearFailedLogins(lockKey);
 
     // JWT token oluştur ve httpOnly, secure, sameSite=strict çereze yaz
