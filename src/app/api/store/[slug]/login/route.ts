@@ -57,7 +57,7 @@ export async function POST(
     if (!store || !store.isActive || !store.pinHash) {
       await bcrypt.compare(pin, '$2b$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZ1234567890dummyhash');
       return NextResponse.json(
-        { error: 'Geçersiz PIN kodu. Kalan deneme hakkı: 4' },
+        { error: 'Geçersiz PIN kodu.' },
         { status: 401 }
       );
     }
@@ -133,9 +133,7 @@ export async function POST(
       }
 
       return NextResponse.json(
-        {
-          error: `Geçersiz PIN kodu. Kalan deneme hakkı: ${attemptResult.remainingAttempts}`,
-        },
+        { error: 'Geçersiz PIN kodu.' },
         { status: 401 }
       );
     }
