@@ -262,6 +262,11 @@ export default function SellerPanelClient({
         body: JSON.stringify({ pin: enteredPin }),
       });
 
+      if (res.status === 429) {
+        setPinError('Çok fazla deneme. 15 dakika sonra tekrar deneyin.');
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) {
         setPinError(data.error || 'Geçersiz PIN kodu.');

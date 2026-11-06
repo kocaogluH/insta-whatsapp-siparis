@@ -16,17 +16,27 @@ export async function POST(
 
     const { slug } = await params;
     const ip = getClientIp(req);
-    const lockKey = `${ip}:${slug}`;
+    const lockKey = `store:${slug}:${ip}`;
 
     // 1. Kilit Kontrolü (5 Hatalı denemede 15 dakika kilit)
     const lockStatus = await checkLoginLock(lockKey);
-    if (lockStatus.isLocked) {
-      const remainingMin = Math.ceil(lockStatus.remainingSeconds / 60);
+    if (lockStatus.failClosed) {
       return NextResponse.json(
+        { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
+        { status: 503 }
+      );
+    }
+
+    if (lockStatus.isLocked) {
+      const retryAfter = lockStatus.remainingSeconds > 0 ? lockStatus.remainingSeconds : 900;
+      return NextResponse.json(
+        { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
         {
-          error: `Çok fazla hatalı PIN denemesi yapıldı. Güvenlik nedeniyle hesabınız ${remainingMin} dakika kilitlendi.`,
-        },
-        { status: 429 }
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfter),
+          },
+        }
       );
     }
 
@@ -56,14 +66,28 @@ export async function POST(
       // Zaman-güvenli dummy hash kontrolü
       await bcrypt.compare(pin, '$2b$10$abcdefghijklmnopqrstuuNOPQRSTUVWXYZ1234567890dummyhash');
       const failResult = await recordFailedLogin(lockKey);
-      if (failResult.isLocked) {
+      if (failResult.failClosed) {
         return NextResponse.json(
-          { error: 'Çok fazla hatalı PIN denemesi yapıldı. Güvenlik nedeniyle hesabınız 15 dakika kilitlendi.' },
-          { status: 429 }
+          { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
+          { status: 503 }
         );
       }
+
+      if (failResult.isLocked) {
+        const retryAfter = failResult.remainingSeconds > 0 ? failResult.remainingSeconds : 900;
+        return NextResponse.json(
+          { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(retryAfter),
+            },
+          }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Geçersiz giriş bilgileri.' },
+        { error: `Geçersiz giriş bilgileri. Kalan deneme hakkı: ${failResult.remainingAttempts}` },
         { status: 401 }
       );
     }
@@ -73,12 +97,26 @@ export async function POST(
 
     if (!isValid) {
       const failResult = await recordFailedLogin(lockKey);
-      if (failResult.isLocked) {
+      if (failResult.failClosed) {
         return NextResponse.json(
-          { error: 'Çok fazla hatalı PIN denemesi yapıldı. Güvenlik nedeniyle hesabınız 15 dakika kilitlendi.' },
-          { status: 429 }
+          { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
+          { status: 503 }
         );
       }
+
+      if (failResult.isLocked) {
+        const retryAfter = failResult.remainingSeconds > 0 ? failResult.remainingSeconds : 900;
+        return NextResponse.json(
+          { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(retryAfter),
+            },
+          }
+        );
+      }
+
       return NextResponse.json(
         {
           error: `Geçersiz PIN kodu. Kalan deneme hakkı: ${failResult.remainingAttempts}`,

@@ -21,6 +21,11 @@ export default function AdminLoginClient() {
         body: JSON.stringify({ password: adminPassword }),
       });
 
+      if (res.status === 429) {
+        setAuthError('Çok fazla deneme. 15 dakika sonra tekrar deneyin.');
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) {
         setAuthError(data.error || 'Geçersiz yönetici şifresi.');
