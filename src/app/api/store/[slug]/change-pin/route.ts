@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { getSellerSession, createSellerToken, setSellerSessionCookie } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
+import { getClientIp, pinChangeLimiter, clearFailedLogins } from '@/lib/ratelimit';
 
 export async function POST(
   req: Request,
@@ -18,28 +19,95 @@ export async function POST(
 
     if (!session || session.slug !== slug) {
       return NextResponse.json(
-        { error: 'Yetkisiz erişim. Lütfen giriş yapın.' },
+        { error: 'Yetkisiz erişim. Lütfen önce satıcı paneline giriş yapın.' },
         { status: 401 }
       );
     }
 
-    const body = await req.json();
-    const { newPin } = body;
+    // 1. Hız Sınırı Kontrolü (IP + Mağaza başına 15 dakikada en fazla 5 deneme)
+    const ip = getClientIp(req);
+    const rateLimitKey = `${ip}:${slug}`;
+    const limitResult = await pinChangeLimiter.limit(rateLimitKey);
 
-    // Yeni PIN kuralı: En az 6 hane / karakter
-    if (!newPin || typeof newPin !== 'string' || newPin.trim().length < 6) {
+    if (!limitResult.success) {
       return NextResponse.json(
-        { error: 'Yeni PIN kodu en az 6 karakter / rakamdan oluşmalıdır.' },
+        { error: 'Çok fazla PIN değiştirme denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '900',
+          },
+        }
+      );
+    }
+
+    const body = await req.json();
+    const { currentPin, newPin, confirmNewPin } = body;
+
+    // 2. Girdi Doğrulamaları
+    if (!currentPin || typeof currentPin !== 'string') {
+      return NextResponse.json(
+        { error: 'Mevcut PIN kodunuzu girmelisiniz.' },
         { status: 400 }
       );
     }
 
-    const cleanPin = newPin.trim();
-    const newHash = await bcrypt.hash(cleanPin, 10);
+    if (!newPin || typeof newPin !== 'string' || newPin.trim().length < 6) {
+      return NextResponse.json(
+        { error: 'Yeni PIN kodu en az 6 haneden oluşmalıdır.' },
+        { status: 400 }
+      );
+    }
 
-    // Mağazayı güncelle: pinHash'i ata, pinVersion'ı artır, mustChangePin'i false yap
-    const updatedStore = await prisma.store.update({
+    if (newPin !== confirmNewPin) {
+      return NextResponse.json(
+        { error: 'Yeni PIN kodu ile tekrarı birbiriyle eşleşmiyor.' },
+        { status: 400 }
+      );
+    }
+
+    const cleanNewPin = newPin.trim();
+    const cleanCurrentPin = currentPin.trim();
+
+    // Yeni PIN eski PIN ile aynı olamaz
+    if (cleanNewPin === cleanCurrentPin) {
+      return NextResponse.json(
+        { error: 'Yeni PIN kodu eski PIN kodunuz ile aynı olamaz.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Mevcut PIN Doğrulaması (bcrypt.compare)
+    const store = await prisma.store.findUnique({
       where: { id: session.storeId },
+      select: {
+        id: true,
+        slug: true,
+        pinHash: true,
+        pinVersion: true,
+      },
+    });
+
+    if (!store || !store.pinHash) {
+      return NextResponse.json(
+        { error: 'Mağaza bulunamadı.' },
+        { status: 404 }
+      );
+    }
+
+    const isCurrentValid = await bcrypt.compare(cleanCurrentPin, store.pinHash);
+    if (!isCurrentValid) {
+      return NextResponse.json(
+        { error: 'Mevcut PIN kodunuz hatalı.' },
+        { status: 401 }
+      );
+    }
+
+    // 4. Yeni PIN'i bcrypt ile hash'le ve veritabanını güncelle
+    const newHash = await bcrypt.hash(cleanNewPin, 10);
+
+    const updatedStore = await prisma.store.update({
+      where: { id: store.id },
       data: {
         pinHash: newHash,
         pinVersion: { increment: 1 },
@@ -52,7 +120,10 @@ export async function POST(
       },
     });
 
-    // Güncel pinVersion ile yeni JWT üret ve çerezi tazele
+    // Başarılı PIN değişiminde olası hatalı giriş sayaçlarını temizle
+    await clearFailedLogins(`store:${store.slug}:${ip}`);
+
+    // Güncel pinVersion ile yeni JWT üret ve httpOnly çerezi tazele
     const newToken = await createSellerToken({
       storeId: updatedStore.id,
       slug: updatedStore.slug,

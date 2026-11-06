@@ -168,10 +168,19 @@ export default function SellerPanelClient({
 
   // Zorunlu PIN Değiştirme Durumu (En az 6 hane kuralı)
   const [mustChangePin, setMustChangePin] = useState(false);
+  const [currentPinForMustChange, setCurrentPinForMustChange] = useState('');
   const [newPin, setNewPin] = useState('');
   const [newPinConfirm, setNewPinConfirm] = useState('');
   const [changePinError, setChangePinError] = useState<string | null>(null);
   const [isChangingPin, setIsChangingPin] = useState(false);
+
+  // Ayarlar Sekmesi - Gönüllü PIN Değiştirme State'i
+  const [volCurrentPin, setVolCurrentPin] = useState('');
+  const [volNewPin, setVolNewPin] = useState('');
+  const [volConfirmPin, setVolConfirmPin] = useState('');
+  const [volPinLoading, setVolPinLoading] = useState(false);
+  const [volPinError, setVolPinError] = useState<string | null>(null);
+  const [volPinSuccess, setVolPinSuccess] = useState<string | null>(null);
 
   // Yeni Ürün Ekleme State'i
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -273,11 +282,12 @@ export default function SellerPanelClient({
         return;
       }
 
-      setEnteredPin('');
-      setIsAuthenticated(true);
       if (data.mustChangePin) {
         setMustChangePin(true);
+        setCurrentPinForMustChange(enteredPin);
       }
+      setEnteredPin('');
+      setIsAuthenticated(true);
       fetchPanelData();
     } catch {
       setPinError('Bağlantı hatası oluştu.');
@@ -291,6 +301,11 @@ export default function SellerPanelClient({
     e.preventDefault();
     setChangePinError(null);
 
+    if (!currentPinForMustChange.trim()) {
+      setChangePinError('Mevcut / Geçici PIN kodunuzu girmelisiniz.');
+      return;
+    }
+
     if (newPin.trim().length < 6) {
       setChangePinError('Yeni PIN kodu en az 6 haneli olmalıdır.');
       return;
@@ -301,12 +316,21 @@ export default function SellerPanelClient({
       return;
     }
 
+    if (newPin.trim() === currentPinForMustChange.trim()) {
+      setChangePinError('Yeni PIN kodu eski PIN kodunuz ile aynı olamaz.');
+      return;
+    }
+
     setIsChangingPin(true);
     try {
       const res = await fetch(`/api/store/${slug}/change-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPin: newPin.trim() }),
+        body: JSON.stringify({
+          currentPin: currentPinForMustChange.trim(),
+          newPin: newPin.trim(),
+          confirmNewPin: newPinConfirm.trim(),
+        }),
       });
 
       const data = await res.json();
@@ -317,6 +341,7 @@ export default function SellerPanelClient({
 
       showToast('Yeni PIN kodunuz başarıyla kaydedildi! 🔒');
       setMustChangePin(false);
+      setCurrentPinForMustChange('');
       setNewPin('');
       setNewPinConfirm('');
       fetchPanelData();
@@ -324,6 +349,62 @@ export default function SellerPanelClient({
       setChangePinError('PIN güncellenirken hata oluştu.');
     } finally {
       setIsChangingPin(false);
+    }
+  };
+
+  // Ayarlar Sekmesi - Gönüllü PIN Değiştirme (POST /api/store/[slug]/change-pin)
+  const handleVoluntaryChangePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVolPinError(null);
+    setVolPinSuccess(null);
+
+    if (!volCurrentPin.trim()) {
+      setVolPinError('Mevcut PIN kodunuzu girmelisiniz.');
+      return;
+    }
+
+    if (volNewPin.trim().length < 6) {
+      setVolPinError('Yeni PIN kodu en az 6 haneli olmalıdır.');
+      return;
+    }
+
+    if (volNewPin !== volConfirmPin) {
+      setVolPinError('Yeni PIN kodları birbiriyle eşleşmiyor.');
+      return;
+    }
+
+    if (volNewPin.trim() === volCurrentPin.trim()) {
+      setVolPinError('Yeni PIN kodu eski PIN kodunuz ile aynı olamaz.');
+      return;
+    }
+
+    setVolPinLoading(true);
+    try {
+      const res = await fetch(`/api/store/${slug}/change-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPin: volCurrentPin.trim(),
+          newPin: volNewPin.trim(),
+          confirmNewPin: volConfirmPin.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setVolPinError(data.error || 'PIN güncellenemedi.');
+        return;
+      }
+
+      showToast('PIN kodunuz başarıyla güncellendi! 🔒');
+      setVolPinSuccess('PIN kodunuz başarıyla güncellendi.');
+      setVolCurrentPin('');
+      setVolNewPin('');
+      setVolConfirmPin('');
+    } catch {
+      setVolPinError('PIN güncellenirken bağlantı hatası oluştu.');
+    } finally {
+      setVolPinLoading(false);
     }
   };
 
@@ -597,6 +678,21 @@ export default function SellerPanelClient({
           </div>
 
           <form onSubmit={handleChangePin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                Girişte Kullandığınız Geçici PIN Kodu *
+              </label>
+              <input
+                type="password"
+                required
+                maxLength={16}
+                placeholder="Geçici PIN"
+                value={currentPinForMustChange}
+                onChange={(e) => setCurrentPinForMustChange(e.target.value)}
+                className="w-full text-center text-xl font-mono font-bold tracking-widest py-2.5 px-4 bg-[#fdfcf9] border border-[#ded4c3] rounded-2xl text-[#33261f] outline-none focus:border-[#8b634d]"
+              />
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
                 Yeni PIN Kodu (En az 6 karakter) *
@@ -1196,10 +1292,11 @@ export default function SellerPanelClient({
 
         {/* TAB 4: SETTINGS */}
         {activeTab === 'settings' && (
-          <form
-            onSubmit={handleSaveSettings}
-            className="bg-white rounded-3xl border border-[#e5dcce] p-5 sm:p-6 shadow-xs max-w-2xl space-y-4"
-          >
+          <div className="space-y-6 max-w-2xl">
+            <form
+              onSubmit={handleSaveSettings}
+              className="bg-white rounded-3xl border border-[#e5dcce] p-5 sm:p-6 shadow-xs space-y-4"
+            >
             <h2 className="text-base font-bold text-[#33261f] border-b border-[#f2ece1] pb-3">
               Mağaza & İletişim Ayarları
             </h2>
@@ -1326,6 +1423,94 @@ export default function SellerPanelClient({
               Ayarları Kaydet
             </button>
           </form>
+
+          {/* Güvenlik & PIN Değiştir Bölümü */}
+          <form
+            onSubmit={handleVoluntaryChangePin}
+            className="bg-white border border-[#e5dcce] rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs"
+          >
+            <div className="flex items-center gap-3 border-b border-[#f2ece1] pb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#f7f4ee] text-[#8c5f4a] flex items-center justify-center">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-sm sm:text-base text-[#33261f]">
+                  Güvenlik & PIN Değiştir
+                </h2>
+                <p className="text-xs text-[#78695e]">
+                  Satıcı paneline girişte kullandığınız PIN kodunu dilediğiniz zaman buradan güncelleyebilirsiniz.
+                </p>
+              </div>
+            </div>
+
+            {volPinError && (
+              <div className="p-3 rounded-xl bg-[#fdf0ee] border border-[#f5c7c1] text-xs font-semibold text-[#b94a38]">
+                {volPinError}
+              </div>
+            )}
+
+            {volPinSuccess && (
+              <div className="p-3 rounded-xl bg-[#edf2ec] border border-[#d6dfd4] text-xs font-semibold text-[#47635e]">
+                {volPinSuccess}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                  Mevcut PIN Kodu *
+                </label>
+                <input
+                  type="password"
+                  required
+                  maxLength={16}
+                  placeholder="Mevcut PIN"
+                  value={volCurrentPin}
+                  onChange={(e) => setVolCurrentPin(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none font-mono tracking-widest text-[#33261f]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                  Yeni PIN Kodu (En az 6 hane) *
+                </label>
+                <input
+                  type="password"
+                  required
+                  maxLength={16}
+                  placeholder="Yeni PIN (min. 6 hane)"
+                  value={volNewPin}
+                  onChange={(e) => setVolNewPin(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none font-mono tracking-widest text-[#33261f]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                  Yeni PIN Kodu (Tekrar) *
+                </label>
+                <input
+                  type="password"
+                  required
+                  maxLength={16}
+                  placeholder="Yeni PIN Tekrarı"
+                  value={volConfirmPin}
+                  onChange={(e) => setVolConfirmPin(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none font-mono tracking-widest text-[#33261f]"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={volPinLoading || !volCurrentPin || !volNewPin || !volConfirmPin}
+              className="px-6 py-2.5 rounded-xl font-bold text-xs bg-[#8c5f4a] hover:bg-[#724d3b] text-[#fdfcf9] cursor-pointer shadow-xs transition disabled:opacity-50"
+            >
+              {volPinLoading ? 'Güncelleniyor...' : 'PIN Kodunu Güncelle'}
+            </button>
+          </form>
+        </div>
         )}
       </main>
     </div>

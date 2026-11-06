@@ -101,6 +101,15 @@ export const storeCreateLimiter = sharedRedis
     })
   : new MemoryRateLimiter(5, 3600 * 1000);
 
+// 4. PIN Değiştirme Hız Sınırı (IP + Mağaza başına 15 dakikada 5 deneme)
+export const pinChangeLimiter = sharedRedis
+  ? new Ratelimit({
+      redis: sharedRedis,
+      limiter: Ratelimit.slidingWindow(5, '900 s'),
+      prefix: 'ratelimit:pin_change',
+    })
+  : new MemoryRateLimiter(5, 900 * 1000);
+
 /**
  * ==============================================================================
  * BRUTE-FORCE GİRİŞ KİLİTLEME SİSTEMİ (Fail-Closed, Upstash Redis)

@@ -98,6 +98,48 @@ export default function SuperAdminClient() {
   } | null>(null);
   const [copiedPin, setCopiedPin] = useState(false);
 
+  // Reset PIN State & Modal (Shown ONLY once upon reset)
+  const [resettingPinStoreId, setResettingPinStoreId] = useState<string | null>(null);
+  const [resetPinResult, setResetPinResult] = useState<{
+    storeName: string;
+    slug: string;
+    temporaryPin: string;
+  } | null>(null);
+  const [copiedResetPin, setCopiedResetPin] = useState(false);
+
+  const handleResetPin = async (storeId: string, storeName: string) => {
+    const confirmed = window.confirm(
+      `"${storeName}" mağazasının PIN kodunu sıfırlamak istediğinize emin misiniz?\n\nYeni 8 haneli rastgele bir PIN üretilecek ve mevcut tüm oturumlar kapatılacaktır.`
+    );
+    if (!confirmed) return;
+
+    setResettingPinStoreId(storeId);
+    try {
+      const res = await fetch(`/api/admin/stores/${storeId}/reset-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'PIN sıfırlanamadı.');
+        return;
+      }
+
+      setResetPinResult({
+        storeName: data.storeName,
+        slug: data.slug,
+        temporaryPin: data.temporaryPin,
+      });
+      showToast(`PIN sıfırlandı: ${data.storeName}`);
+      fetchStores();
+    } catch {
+      showToast('PIN sıfırlanırken bağlantı hatası oluştu.');
+    } finally {
+      setResettingPinStoreId(null);
+    }
+  };
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -488,6 +530,16 @@ export default function SuperAdminClient() {
                         ? 'Bio Linki Kopyalandı ✓'
                         : 'Müşteriye Verilecek Bio Linkini Kopyala'}
                     </button>
+
+                    <button
+                      onClick={() => handleResetPin(st.id, st.name)}
+                      disabled={resettingPinStoreId === st.id}
+                      className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-[#fff] hover:bg-[#fdf0ee] text-[#b94a38] border border-[#f5c7c1] transition cursor-pointer disabled:opacity-50"
+                      title="8 Haneli Rastgele PIN Üret ve Sıfırla"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                      {resettingPinStoreId === st.id ? 'Sıfırlanıyor...' : 'PIN Sıfırla (8 Hane)'}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -701,6 +753,62 @@ export default function SuperAdminClient() {
                 className="px-5 py-3 rounded-xl text-xs font-bold bg-[#312925] hover:bg-[#1e1916] text-[#f7f4ee] transition cursor-pointer"
               >
                 Tamam
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PIN Sıfırlama Sonucu (Admine Yalnızca BİR KEZ Gösterilir) */}
+      {resetPinResult && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl border border-[#ede5d8] max-w-sm w-full p-6 text-center space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-[#fdf0ee] border border-[#f5c7c1] flex items-center justify-center mx-auto text-[#b94a38]">
+              <KeyRound className="w-7 h-7" />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#b94a38] bg-[#fdf0ee] px-2.5 py-0.5 rounded-full border border-[#f5c7c1]">
+                PIN Başarıyla Sıfırlandı
+              </span>
+              <h3 className="text-lg font-bold text-[#312925] mt-2">
+                {resetPinResult.storeName}
+              </h3>
+              <p className="text-xs text-[#786c64] mt-1 font-mono">
+                /{resetPinResult.slug}
+              </p>
+            </div>
+
+            <div className="bg-[#f9f7f2] p-4 rounded-2xl border border-[#ede5d8] space-y-2">
+              <p className="text-xs font-semibold text-[#786c64]">
+                Satıcı İçin Üretilen 8 Haneli Geçici PIN Kodu:
+              </p>
+              <p className="text-2xl font-mono font-bold tracking-widest text-[#312925]">
+                {resetPinResult.temporaryPin}
+              </p>
+              <p className="text-[11px] text-[#b94a38] font-medium leading-tight pt-1">
+                ⚠️ Güvenlik gereği bu PIN yalnızca BİR KEZ gösterilir. Veritabanına veya loglara düz metin olarak kaydedilmez. Satıcı bu geçici PIN ile giriş yaptığında yeni bir PIN belirlemek zorundadır.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(resetPinResult.temporaryPin);
+                  setCopiedResetPin(true);
+                  setTimeout(() => setCopiedResetPin(false), 2000);
+                  showToast('Yeni PIN kopyalandı!');
+                }}
+                className="flex-1 py-3 rounded-xl text-xs font-bold bg-[#f0ebe1] hover:bg-[#e4dbcd] text-[#312925] border border-[#ded4c3] transition cursor-pointer"
+              >
+                {copiedResetPin ? 'PIN Kopyalandı ✓' : 'PIN Kodunu Kopyala'}
+              </button>
+
+              <button
+                onClick={() => setResetPinResult(null)}
+                className="px-5 py-3 rounded-xl text-xs font-bold bg-[#312925] hover:bg-[#1e1916] text-[#f7f4ee] transition cursor-pointer"
+              >
+                Kapat
               </button>
             </div>
           </div>
