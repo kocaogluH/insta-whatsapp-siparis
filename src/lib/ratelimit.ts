@@ -135,11 +135,25 @@ export async function checkLoginLock(key: string): Promise<LoginLockCheckResult>
   }
 
   try {
-    const lockKey = `ratelimit:login:lock:${key}`;
-    const ttl = await redis.ttl(lockKey);
-    if (ttl > 0) {
-      return { isLocked: true, remainingSeconds: ttl, failClosed: false };
+    const attemptsKey = `ratelimit:login:attempts:${key}`;
+    const legacyLockKey = `ratelimit:login:lock:${key}`;
+
+    const [attempts, attemptsTtl, legacyLockTtl] = await Promise.all([
+      redis.get<number>(attemptsKey),
+      redis.ttl(attemptsKey),
+      redis.ttl(legacyLockKey),
+    ]);
+
+    // Geriye dönük uyumluluk: eski kilit anahtarı aktifse
+    if (legacyLockTtl > 0) {
+      return { isLocked: true, remainingSeconds: legacyLockTtl, failClosed: false };
     }
+
+    // Atomik sayaç 5 veya üzerindeyse ve TTL süresi devam ediyorsa kilitli
+    if (attempts !== null && Number(attempts) >= 5 && attemptsTtl > 0) {
+      return { isLocked: true, remainingSeconds: attemptsTtl, failClosed: false };
+    }
+
     return { isLocked: false, remainingSeconds: 0, failClosed: false };
   } catch (error) {
     console.error(`[RateLimit] Redis checkLoginLock hatası (fail-closed). Hedef anahtar: ${key}:`, error);
@@ -148,7 +162,7 @@ export async function checkLoginLock(key: string): Promise<LoginLockCheckResult>
 }
 
 /**
- * Hatalı giriş kaydetme (5 hatalı denemede 15 dk kilit)
+ * Hatalı giriş kaydetme (Atomik redis.incr, ilk artışta expire ve 5 sınırında 15 dk kilit)
  */
 export async function recordFailedLogin(key: string): Promise<LoginFailRecordResult> {
   const maxAttempts = 5;
@@ -162,27 +176,42 @@ export async function recordFailedLogin(key: string): Promise<LoginFailRecordRes
 
   try {
     const attemptsKey = `ratelimit:login:attempts:${key}`;
-    const lockKey = `ratelimit:login:lock:${key}`;
 
+    // 1. Atomik sayaç artışı (redis.incr - Okuma ve yazma tek adımda atomik yapılır)
     const attempts = await redis.incr(attemptsKey);
+
+    // 2. İlk artışta 15 dakikalık (900 saniye) expire ayarla
     if (attempts === 1) {
       await redis.expire(attemptsKey, lockDurationSec);
+    } else if (attempts === maxAttempts) {
+      // 5. hatalı denemede kilit süresini tam 15 dakika olarak tazele
+      await redis.expire(attemptsKey, lockDurationSec);
+    } else {
+      // Herhangi bir ağ/bağlantı yarışında expire atanmamış kalmasını önle
+      const currentTtl = await redis.ttl(attemptsKey);
+      if (currentTtl === -1) {
+        await redis.expire(attemptsKey, lockDurationSec);
+      }
     }
 
+    // Kalan kilit süresini öğren
+    const ttl = await redis.ttl(attemptsKey);
+    const remainingSec = ttl > 0 ? ttl : lockDurationSec;
+
+    // 3. Eşzamanlı istek koruması: Sayaç 5 veya üzerindeyse doğrudan kilitli dön
+    // Anahtar ASLA silinmez; böylece eşzamanlı gelen 6., 7., vb. istekler sayacı sıfırlayamaz veya sınırı aşamaz.
     if (attempts >= maxAttempts) {
-      await redis.set(lockKey, '1', { ex: lockDurationSec });
-      await redis.del(attemptsKey);
       return {
         isLocked: true,
         remainingAttempts: 0,
-        remainingSeconds: lockDurationSec,
+        remainingSeconds: remainingSec,
         failClosed: false,
       };
     }
 
     return {
       isLocked: false,
-      remainingAttempts: Math.max(0, maxAttempts - attempts),
+      remainingAttempts: maxAttempts - attempts,
       remainingSeconds: 0,
       failClosed: false,
     };
@@ -201,8 +230,8 @@ export async function clearFailedLogins(key: string): Promise<void> {
 
   try {
     const attemptsKey = `ratelimit:login:attempts:${key}`;
-    const lockKey = `ratelimit:login:lock:${key}`;
-    await redis.del(attemptsKey, lockKey);
+    const legacyLockKey = `ratelimit:login:lock:${key}`;
+    await redis.del(attemptsKey, legacyLockKey);
   } catch (error) {
     console.error(`[RateLimit] Redis clearFailedLogins hatası. Hedef anahtar: ${key}:`, error);
   }
