@@ -146,18 +146,22 @@ async function runSecurityAudit() {
   }
 
   // --------------------------------------------------------------------------
-  // TEST 3: Giriş yapmadan /admin ve /{BUTIK_SLUG}/panel adreslerine istek atınca giriş sayfasına yönlendiriliyor mu?
-  // (redirect: "manual" ile 3xx veya 401/403 bekle)
+  // TEST 3: Giriş yapmadan /admin yönlendirmesi ve /{BUTIK_SLUG}/panel veri izolasyonu kontrolü
+  // - /admin: 3xx veya 401/403 ile engellenmeli (redirect: "manual")
+  // - /{BUTIK_SLUG}/panel: 200 dönmesi kabul edilir, ancak HTML gövdesinde sipariş/müşteri JSON sızıntısı olmamalı
+  // - /api/store/{BUTIK_SLUG}/panel-data: Oturum olmadan 401 veya 403 dönmeli
   // --------------------------------------------------------------------------
   try {
-    const [resAdmin, resStore] = await Promise.all([
+    const [resAdmin, resStorePage, resStoreApi] = await Promise.all([
       fetch(`${BASE_URL}/admin`, {
         method: 'GET',
         redirect: 'manual',
       }),
       fetch(`${BASE_URL}/${BUTIK_SLUG}/panel`, {
         method: 'GET',
-        redirect: 'manual',
+      }),
+      fetch(`${BASE_URL}/api/store/${BUTIK_SLUG}/panel-data`, {
+        method: 'GET',
       }),
     ]);
 
@@ -166,32 +170,42 @@ async function runSecurityAudit() {
       resAdmin.status === 401 ||
       resAdmin.status === 403;
 
-    const isStoreProtected =
-      (resStore.status >= 300 && resStore.status < 400) ||
-      resStore.status === 401 ||
-      resStore.status === 403;
+    const isApiProtected = resStoreApi.status === 401 || resStoreApi.status === 403;
 
-    const adminLocation = resAdmin.headers.get('location') || '-';
-    const storeLocation = resStore.headers.get('location') || '-';
+    // Oturumsuz panel sayfası HTML gövdesinde hassas veri (sipariş, müşteri, PIN hash, IBAN vb.) sızıntı kontrolü
+    const htmlBody = await resStorePage.text();
+    const sensitivePatterns = [
+      { name: 'sipariş listesi JSON ("orders": [...])', regex: /"orders"\s*:\s*\[/ },
+      { name: 'müşteri telefon JSON ("customerPhone": ...)', regex: /"customerPhone"\s*:/ },
+      { name: 'müşteri adı JSON ("customerName": ...)', regex: /"customerName"\s*:/ },
+      { name: 'IBAN bilgisi JSON ("ibanInfo": ...)', regex: /"ibanInfo"\s*:\s*"[^"]+"/ },
+      { name: 'PIN hash ("pinHash": ...)', regex: /"pinHash"\s*:/ },
+      { name: 'PIN kodu ("pinCode": ...)', regex: /"pinCode"\s*:/ },
+    ];
 
-    if (isAdminProtected && isStoreProtected) {
+    const leakedPattern = sensitivePatterns.find((p) => p.regex.test(htmlBody));
+
+    if (isAdminProtected && isApiProtected && !leakedPattern) {
       logPass(
         3,
-        'Giriş yapmadan /admin ve butik paneline erişim engelleniyor/yönlendiriliyor',
-        `/admin: HTTP ${resAdmin.status} (Hedef: ${adminLocation}), /${BUTIK_SLUG}/panel: HTTP ${resStore.status} (Hedef: ${storeLocation})`
+        '/admin yönlendirildi, panel API verisi (401/403) korundu ve HTML sızıntısı yok',
+        `/admin: HTTP ${resAdmin.status}, panel-data: HTTP ${resStoreApi.status}, HTML Sızıntı Kontrolü: TEMİZ (Sipariş/Müşteri verisi sızmıyor)`
       );
     } else {
       let detail = '';
       if (!isAdminProtected) {
         detail += `/admin HTTP ${resAdmin.status} döndü (3xx/401/403 bekleniyordu). `;
       }
-      if (!isStoreProtected) {
-        detail += `/${BUTIK_SLUG}/panel HTTP ${resStore.status} döndü (3xx/401/403 bekleniyordu).`;
+      if (!isApiProtected) {
+        detail += `panel-data API HTTP ${resStoreApi.status} döndü (401 veya 403 bekleniyordu). `;
       }
-      logFail(3, 'Giriş yapmadan korumalı sayfalara erişim tam kısıtlanamadı', detail);
+      if (leakedPattern) {
+        detail += `Panel HTML gövdesinde sızan veri bulundu: ${leakedPattern.name}! `;
+      }
+      logFail(3, 'Yetkisiz erişim veya veri sızıntısı tespit edildi', detail.trim());
     }
   } catch (err) {
-    logFail(3, 'Yetkisiz yönlendirme testi sırasında bağlantı hatası', err.message);
+    logFail(3, 'Yetkisiz erişim kontrolü testi sırasında bağlantı hatası', err.message);
   }
 
   // --------------------------------------------------------------------------
