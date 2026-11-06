@@ -194,7 +194,93 @@ export async function consumeLoginAttempt(key: string): Promise<ConsumeAttemptRe
 }
 
 /**
- * Başarılı girişte kilit ve deneme sayaçlarını sıfırlama
+ * ==============================================================================
+ * MAĞAZA BAZLI GLOBAL BRUTE-FORCE KORUMASI (IP'den Bağımsız Dağıtık Saldırı Önleme)
+ * Kural: key "store:${slug}:global", saatte en fazla 30 yanlış deneme.
+ * Aşılırsa o butik için 15 dakika 429 dön.
+ * Doğru girişte BU SAYAÇ SIFIRLANMAZ (saldırgan doğru girişle silemesin).
+ * ==============================================================================
+ */
+
+export interface GlobalStoreLockResult {
+  isLocked: boolean;
+  remainingSeconds: number;
+  failClosed?: boolean;
+}
+
+export async function checkGlobalStoreLock(slug: string): Promise<GlobalStoreLockResult> {
+  const redis = getRedisClient();
+  if (!redis) {
+    console.error(`[RateLimit] Redis yapılandırılmamış veya erişilemiyor (fail-closed). Slug: ${slug}`);
+    return { isLocked: false, remainingSeconds: 0, failClosed: true };
+  }
+
+  try {
+    const lockKey = `ratelimit:login:lock:store:${slug}:global`;
+    const attemptsKey = `ratelimit:login:attempts:store:${slug}:global`;
+
+    const [lockTtl, attempts, attemptsTtl] = await Promise.all([
+      redis.ttl(lockKey),
+      redis.get<number>(attemptsKey),
+      redis.ttl(attemptsKey),
+    ]);
+
+    if (lockTtl > 0) {
+      return { isLocked: true, remainingSeconds: lockTtl, failClosed: false };
+    }
+
+    if (attempts !== null && Number(attempts) >= 30 && attemptsTtl > 0) {
+      return { isLocked: true, remainingSeconds: attemptsTtl, failClosed: false };
+    }
+
+    return { isLocked: false, remainingSeconds: 0, failClosed: false };
+  } catch (error) {
+    console.error(`[RateLimit] Redis checkGlobalStoreLock hatası. Slug: ${slug}:`, error);
+    return { isLocked: false, remainingSeconds: 0, failClosed: true };
+  }
+}
+
+export async function recordGlobalStoreFail(slug: string): Promise<GlobalStoreLockResult> {
+  const maxAttempts = 30;
+  const windowSec = 60 * 60; // 1 saat (3600 saniye)
+  const lockDurationSec = 15 * 60; // 15 dakika (900 saniye)
+
+  const redis = getRedisClient();
+  if (!redis) {
+    console.error(`[RateLimit] Redis yapılandırılmamış veya erişilemiyor (fail-closed). Slug: ${slug}`);
+    return { isLocked: false, remainingSeconds: 0, failClosed: true };
+  }
+
+  try {
+    const attemptsKey = `ratelimit:login:attempts:store:${slug}:global`;
+    const lockKey = `ratelimit:login:lock:store:${slug}:global`;
+
+    const attempts = await redis.incr(attemptsKey);
+
+    if (attempts === 1) {
+      await redis.expire(attemptsKey, windowSec);
+    } else {
+      const currentTtl = await redis.ttl(attemptsKey);
+      if (currentTtl === -1) {
+        await redis.expire(attemptsKey, windowSec);
+      }
+    }
+
+    if (attempts >= maxAttempts) {
+      // 30 yanlış denemede 15 dakika kilit uygula
+      await redis.set(lockKey, '1', { ex: lockDurationSec });
+      return { isLocked: true, remainingSeconds: lockDurationSec, failClosed: false };
+    }
+
+    return { isLocked: false, remainingSeconds: 0, failClosed: false };
+  } catch (error) {
+    console.error(`[RateLimit] Redis recordGlobalStoreFail hatası. Slug: ${slug}:`, error);
+    return { isLocked: false, remainingSeconds: 0, failClosed: true };
+  }
+}
+
+/**
+ * Başarılı girişte kilit ve deneme sayaçlarını sıfırlama (Yalnızca IP bazlı sayaç silinir)
  */
 export async function clearFailedLogins(key: string): Promise<void> {
   const redis = getRedisClient();
