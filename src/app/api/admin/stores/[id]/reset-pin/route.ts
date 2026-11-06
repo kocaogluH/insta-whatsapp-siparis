@@ -64,13 +64,22 @@ export async function POST(
     await clearFailedLogins(`store:${store.slug}:global`);
 
     // 5. Yeni PIN yalnızca bu yanıtta admine bir kez gösterilmek üzere döndürülür
-    return NextResponse.json({
-      success: true,
-      storeName: store.name,
-      slug: store.slug,
-      temporaryPin: newRawPin,
-      message: 'PIN kodu başarıyla sıfırlandı.',
-    });
+    // DİKKAT: Cache-Control: no-store başlığı ile tarayıcı veya proxy önbelleklemesi engellenir.
+    return NextResponse.json(
+      {
+        success: true,
+        storeName: store.name,
+        slug: store.slug,
+        temporaryPin: newRawPin,
+        message: 'PIN kodu başarıyla sıfırlandı.',
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      }
+    );
   } catch (error) {
     console.error('POST /api/admin/stores/[id]/reset-pin error:', error);
     return NextResponse.json(

@@ -3,7 +3,13 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { getSellerSession, createSellerToken, setSellerSessionCookie } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
-import { getClientIp, pinChangeLimiter, clearFailedLogins } from '@/lib/ratelimit';
+import {
+  getClientIp,
+  pinChangeLimiter,
+  checkGlobalStoreLock,
+  recordGlobalStoreFail,
+  clearFailedLogins,
+} from '@/lib/ratelimit';
 
 export async function POST(
   req: Request,
@@ -17,14 +23,44 @@ export async function POST(
     const { slug } = await params;
     const session = await getSellerSession();
 
-    if (!session || session.slug !== slug) {
+    // 1. seller_session Doğrulaması (Eksikse 401, Slug uyuşmuyorsa 403)
+    if (!session) {
       return NextResponse.json(
         { error: 'Yetkisiz erişim. Lütfen önce satıcı paneline giriş yapın.' },
         { status: 401 }
       );
     }
 
-    // 1. Hız Sınırı Kontrolü (IP + Mağaza başına 15 dakikada en fazla 5 deneme)
+    if (session.slug !== slug) {
+      return NextResponse.json(
+        { error: 'Erişim engellendi. Bu mağaza için işlem yapma yetkiniz yok.' },
+        { status: 403 }
+      );
+    }
+
+    // 2. Butik Başına Global Kilit Kontrolü ("store:${slug}:global", saatte 30 limit)
+    const globalLockStatus = await checkGlobalStoreLock(slug);
+    if (globalLockStatus.failClosed) {
+      return NextResponse.json(
+        { error: 'Güvenlik doğrulama servisine şu anda erişilemiyor. Lütfen daha sonra tekrar deneyin.' },
+        { status: 503 }
+      );
+    }
+
+    if (globalLockStatus.isLocked) {
+      const retryAfter = globalLockStatus.remainingSeconds > 0 ? globalLockStatus.remainingSeconds : 900;
+      return NextResponse.json(
+        { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfter),
+          },
+        }
+      );
+    }
+
+    // 3. IP + Mağaza Başına Hız Sınırı (15 dakikada en fazla 5 PIN değiştirme denemesi)
     const ip = getClientIp(req);
     const rateLimitKey = `${ip}:${slug}`;
     const limitResult = await pinChangeLimiter.limit(rateLimitKey);
@@ -44,7 +80,7 @@ export async function POST(
     const body = await req.json();
     const { currentPin, newPin, confirmNewPin } = body;
 
-    // 2. Girdi Doğrulamaları
+    // 4. Girdi Doğrulamaları
     if (!currentPin || typeof currentPin !== 'string') {
       return NextResponse.json(
         { error: 'Mevcut PIN kodunuzu girmelisiniz.' },
@@ -77,7 +113,7 @@ export async function POST(
       );
     }
 
-    // 3. Mevcut PIN Doğrulaması (bcrypt.compare)
+    // 5. Mevcut PIN Doğrulaması (bcrypt.compare)
     const store = await prisma.store.findUnique({
       where: { id: session.storeId },
       select: {
@@ -97,13 +133,28 @@ export async function POST(
 
     const isCurrentValid = await bcrypt.compare(cleanCurrentPin, store.pinHash);
     if (!isCurrentValid) {
+      // Yanlış mevcut PIN denemeleri login uç noktasıyla paylaşılan global sayaca ("store:${slug}:global") işlenir
+      const globalFailResult = await recordGlobalStoreFail(slug);
+
+      if (globalFailResult.isLocked) {
+        return NextResponse.json(
+          { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(globalFailResult.remainingSeconds || 900),
+            },
+          }
+        );
+      }
+
       return NextResponse.json(
         { error: 'Mevcut PIN kodunuz hatalı.' },
         { status: 401 }
       );
     }
 
-    // 4. Yeni PIN'i bcrypt ile hash'le ve veritabanını güncelle
+    // 6. Yeni PIN'i bcrypt ile hash'le ve veritabanını güncelle
     const newHash = await bcrypt.hash(cleanNewPin, 10);
 
     const updatedStore = await prisma.store.update({
@@ -120,7 +171,7 @@ export async function POST(
       },
     });
 
-    // Başarılı PIN değişiminde olası hatalı giriş sayaçlarını temizle
+    // Başarılı PIN değişiminde kullanıcının IP bazlı kilit sayaçlarını temizle
     await clearFailedLogins(`store:${store.slug}:${ip}`);
 
     // Güncel pinVersion ile yeni JWT üret ve httpOnly çerezi tazele
