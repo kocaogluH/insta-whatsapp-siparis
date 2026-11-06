@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { getAdminPasswordHash, createAdminToken, setAdminSessionCookie } from '@/lib/auth';
+import { verifyAdminPassword, createAdminToken, setAdminSessionCookie } from '@/lib/auth';
 import { verifyCsrfOrigin, csrfErrorResponse } from '@/lib/csrf';
 import { getClientIp, checkLoginLock, recordFailedLogin, clearFailedLogins } from '@/lib/ratelimit';
 
@@ -35,11 +34,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ortam değişkeninden hash'i al (tanımlı değilse fırlatır)
-    const adminHash = getAdminPasswordHash();
+    // ADMIN_PASSWORD ortam değişkeni kontrolü
+    if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Sunucu yapılandırma hatası: ADMIN_PASSWORD ortam değişkeni tanımlanmamış.' },
+        { status: 500 }
+      );
+    }
 
-    // Zaman-güvenli bcrypt karşılaştırması
-    const isValid = await bcrypt.compare(password, adminHash);
+    // crypto.timingSafeEqual ile zaman-güvenli şifre karşılaştırması
+    const isValid = verifyAdminPassword(password);
 
     if (!isValid) {
       const failResult = await recordFailedLogin(lockKey);

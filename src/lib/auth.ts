@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 import { prisma } from './prisma';
 
 export const SELLER_COOKIE_NAME = 'seller_session';
@@ -17,7 +18,6 @@ export interface AdminJwtPayload {
 }
 
 const DEFAULT_SESSION_SECRET = 'edcb8f3b32ffe5343f95f077e2f9ed10b95b8ac06536bd2494ad987452129f7e';
-const DEFAULT_ADMIN_HASH = '$2b$10$bLcwf6RXMB8Yyh2A6u6wTOf58y/opVkJO9fvJABH2jEYn5jt0vmHK'; // 715612
 
 /**
  * SESSION_SECRET ortam değişkenini doğrular ve Uint8Array döner.
@@ -29,12 +29,19 @@ export function getSessionSecret(): Uint8Array {
 }
 
 /**
- * ADMIN_PASSWORD_HASH ortam değişkenini doğrular.
- * Tanımlı değilse 715612 hash'ine döner.
+ * Admin şifresini process.env.ADMIN_PASSWORD ortam değişkeninden okuyarak
+ * crypto.timingSafeEqual ile zaman-güvenli karşılaştırır.
  */
-export function getAdminPasswordHash(): string {
-  const hash = process.env.ADMIN_PASSWORD_HASH || DEFAULT_ADMIN_HASH;
-  return hash.trim();
+export function verifyAdminPassword(providedPassword: string): boolean {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword || typeof adminPassword !== 'string' || adminPassword.trim().length === 0) {
+    return false;
+  }
+
+  const providedHash = crypto.createHash('sha256').update(String(providedPassword)).digest();
+  const expectedHash = crypto.createHash('sha256').update(String(adminPassword)).digest();
+
+  return crypto.timingSafeEqual(providedHash, expectedHash);
 }
 
 /**
