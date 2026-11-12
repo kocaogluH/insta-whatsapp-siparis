@@ -1,0 +1,87 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01 - Ayarlar ve Ortam", "01 - Ayarlar ve Ortam", "{A1B2C3D4-1111-4000-8000-000000000001}"
+	ProjectSection(SolutionItems) = preProject
+		.env = .env
+		.env.example = .env.example
+		.gitignore = .gitignore
+		next.config.mjs = next.config.mjs
+		package.json = package.json
+		tsconfig.json = tsconfig.json
+		vercel.json = vercel.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02 - Veritabani (Prisma)", "02 - Veritabani (Prisma)", "{A1B2C3D4-2222-4000-8000-000000000002}"
+	ProjectSection(SolutionItems) = preProject
+		prisma\schema.postgresql.prisma = prisma\schema.postgresql.prisma
+		prisma\schema.prisma = prisma\schema.prisma
+		prisma\seed.js = prisma\seed.js
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "03 - Guvenlik ve Altyapi (lib)", "03 - Guvenlik ve Altyapi (lib)", "{A1B2C3D4-3333-4000-8000-000000000003}"
+	ProjectSection(SolutionItems) = preProject
+		src\lib\auth.ts = src\lib\auth.ts
+		src\lib\csrf.ts = src\lib\csrf.ts
+		src\lib\ensureSeed.ts = src\lib\ensureSeed.ts
+		src\lib\format.ts = src\lib\format.ts
+		src\lib\prisma.ts = src\lib\prisma.ts
+		src\lib\ratelimit.ts = src\lib\ratelimit.ts
+		src\lib\validations.ts = src\lib\validations.ts
+		src\middleware.ts = src\middleware.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "04 - API Rotalari", "04 - API Rotalari", "{A1B2C3D4-4444-4000-8000-000000000004}"
+	ProjectSection(SolutionItems) = preProject
+		src\app\api\admin\login\route.ts = src\app\api\admin\login\route.ts
+		src\app\api\admin\stores\route.ts = src\app\api\admin\stores\route.ts
+		src\app\api\admin\stores\[id]\reset-pin\route.ts = src\app\api\admin\stores\[id]\reset-pin\route.ts
+		src\app\api\auth\logout\route.ts = src\app\api\auth\logout\route.ts
+		src\app\api\orders\route.ts = src\app\api\orders\route.ts
+		src\app\api\orders\[id]\route.ts = src\app\api\orders\[id]\route.ts
+		src\app\api\products\route.ts = src\app\api\products\route.ts
+		src\app\api\products\[id]\route.ts = src\app\api\products\[id]\route.ts
+		src\app\api\store\[slug]\change-pin\route.ts = src\app\api\store\[slug]\change-pin\route.ts
+		src\app\api\store\[slug]\login\route.ts = src\app\api\store\[slug]\login\route.ts
+		src\app\api\store\[slug]\panel-data\route.ts = src\app\api\store\[slug]\panel-data\route.ts
+		src\app\api\store\[slug]\route.ts = src\app\api\store\[slug]\route.ts
+		src\app\api\upload\route.ts = src\app\api\upload\route.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "05 - Sayfalar ve Arayuz", "05 - Sayfalar ve Arayuz", "{A1B2C3D4-5555-4000-8000-000000000005}"
+	ProjectSection(SolutionItems) = preProject
+		src\app\[slug]\page.tsx = src\app\[slug]\page.tsx
+		src\app\[slug]\panel\page.tsx = src\app\[slug]\panel\page.tsx
+		src\app\admin\layout.tsx = src\app\admin\layout.tsx
+		src\app\admin\login\AdminLoginClient.tsx = src\app\admin\login\AdminLoginClient.tsx
+		src\app\admin\login\page.tsx = src\app\admin\login\page.tsx
+		src\app\admin\page.tsx = src\app\admin\page.tsx
+		src\app\admin\SuperAdminClient.tsx = src\app\admin\SuperAdminClient.tsx
+		src\app\globals.css = src\app\globals.css
+		src\app\layout.tsx = src\app\layout.tsx
+		src\app\manifest.ts = src\app\manifest.ts
+		src\app\page.tsx = src\app\page.tsx
+		src\app\robots.ts = src\app\robots.ts
+		src\app\sitemap.ts = src\app\sitemap.ts
+		src\components\SellerPanelClient.tsx = src\components\SellerPanelClient.tsx
+		src\components\StorefrontClient.tsx = src\components\StorefrontClient.tsx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "06 - Scriptler ve Testler", "06 - Scriptler ve Testler", "{A1B2C3D4-6666-4000-8000-000000000006}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\migrate-pins.js = scripts\migrate-pins.js
+		scripts\security-check.mjs = scripts\security-check.mjs
+		scripts\test-concurrency.js = scripts\test-concurrency.js
+		scripts\test-order-flow.js = scripts\test-order-flow.js
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F9E8D7C6-B5A4-4321-9876-543210FEDCBA}
+	EndGlobalSection
+EndGlobal
