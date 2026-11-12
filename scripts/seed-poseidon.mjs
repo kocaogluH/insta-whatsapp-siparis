@@ -217,12 +217,13 @@ async function main() {
   const storeData = await panelRes.json();
   const existingNames = new Set((storeData.products || []).map((p) => p.name.trim().toLowerCase()));
 
-  // Mağaza logosunu, adresini, slogan ve açıklamasını güncelle
+  // Mağaza logosunu, bannerını, adresini, slogan ve açıklamasını güncelle
   const patchRes = await fetch(`${BASE_URL}/api/store/${BUTIK_SLUG}`, {
     method: 'PATCH',
     headers: authHeaders,
     body: JSON.stringify({
       logoUrl: '/images/poseidon/logo.jpg',
+      bannerUrl: '/images/poseidon/banner.jpg',
       address: storeData.address || 'Antakya / Hatay',
       tagline: storeData.tagline || 'Poseidon Enterprise Solutions — Web, Mobil & Özel Yazılım Çözümleri',
       description:
@@ -232,7 +233,7 @@ async function main() {
   });
 
   if (patchRes.ok) {
-    console.log('✅ Mağaza logosu (/images/poseidon/logo.jpg) ve profil bilgileri güncellendi.');
+    console.log('✅ Mağaza logosu (/images/poseidon/logo.jpg), bannerı (/images/poseidon/banner.jpg) ve profil bilgileri güncellendi.');
   } else {
     const err = await patchRes.json().catch(() => ({}));
     console.warn('⚠️ Mağaza profili güncellenemedi:', err.error || patchRes.status);
