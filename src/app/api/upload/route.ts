@@ -127,11 +127,12 @@ export async function POST(req: Request) {
     // 5. Rastgele Benzersiz UUID Dosya Adı
     const randomName = `${crypto.randomUUID()}.${extension}`;
 
-    // 6. Depolama: Vercel Blob (Varsa doğrudan Vercel Blob'a yükle, yerel geliştirmede diske yaz)
+    // 6. Depolama: Vercel Blob (Varsa doğrudan Vercel Blob'a yükle, yerelde diske yaz, Vercel'de token yoksa inline Data URL dön)
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       const blob = await put(`products/${randomName}`, buffer, {
         access: 'public',
         contentType: mimeType,
+        token: process.env.BLOB_READ_WRITE_TOKEN,
       });
 
       return NextResponse.json({
@@ -139,22 +140,39 @@ export async function POST(req: Request) {
         fileName: randomName,
         storage: 'vercel_blob',
       });
-    } else {
-      // Yerel Geliştirme (Local Dev) Yedek Kayıt Alanı
-      const uploadsDir = join(process.cwd(), 'public', 'uploads');
-      try {
-        await mkdir(uploadsDir, { recursive: true });
-      } catch {}
-
-      const filePath = join(uploadsDir, randomName);
-      await writeFile(filePath, buffer);
-
-      return NextResponse.json({
-        url: `/uploads/${randomName}`,
-        fileName: randomName,
-        storage: 'local_fallback',
-      });
     }
+
+    if (!process.env.VERCEL) {
+      try {
+        const uploadsDir = join(process.cwd(), 'public', 'uploads');
+        await mkdir(uploadsDir, { recursive: true });
+        const filePath = join(uploadsDir, randomName);
+        await writeFile(filePath, buffer);
+
+        return NextResponse.json({
+          url: `/uploads/${randomName}`,
+          fileName: randomName,
+          storage: 'local_fallback',
+        });
+      } catch (fsErr) {
+        console.warn('Local upload fallback failed, switching to inline data URL:', fsErr);
+      }
+    }
+
+    // Vercel'de BLOB_READ_WRITE_TOKEN tanımlı değilse salt-okunur dosya sistemine takılmamak için güvenli Data URL dön
+    if (buffer.length > 1500 * 1024) {
+      return NextResponse.json(
+        { error: 'Görsel boyutu çok büyük. Lütfen daha küçük bir görsel seçin (maks. 1.5 MB).' },
+        { status: 400 }
+      );
+    }
+
+    const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+    return NextResponse.json({
+      url: dataUrl,
+      fileName: randomName,
+      storage: 'inline_data_url',
+    });
   } catch (error) {
     console.error('POST /api/upload error:', error);
     return NextResponse.json(

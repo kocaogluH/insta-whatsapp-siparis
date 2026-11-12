@@ -119,7 +119,16 @@ export const productCreateSchema = z.object({
     .string()
     .trim()
     .min(1, 'Görsel linki zorunludur.')
-    .max(1000, 'Görsel URL çok uzun.'),
+    .max(2_200_000, 'Görsel verisi çok büyük.')
+    .refine(
+      (val) =>
+        val.startsWith('https://') ||
+        val.startsWith('http://') ||
+        val.startsWith('/images/') ||
+        val.startsWith('/uploads/') ||
+        /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(val),
+      'Geçersiz görsel formatı veya bağlantısı.'
+    ),
   category: z.string().trim().max(50).optional().default('Genel'),
   stock: z.number().int().min(0).max(100000).default(0),
   isActive: z.boolean().optional().default(true),

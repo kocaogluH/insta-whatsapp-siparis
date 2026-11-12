@@ -465,7 +465,7 @@ export default function SellerPanelClient({
             }
           },
           file.type === 'image/png' ? 'image/png' : 'image/jpeg',
-          0.88
+          0.80
         );
       };
 
@@ -484,8 +484,8 @@ export default function SellerPanelClient({
 
     setUploadingImage(true);
     try {
-      // 1600px boyutuna küçült
-      const optimizedFile = await resizeImageBeforeUpload(file, 1600);
+      // 1000px boyutuna küçült
+      const optimizedFile = await resizeImageBeforeUpload(file, 1000);
       const formData = new FormData();
       formData.append('file', optimizedFile);
 
@@ -518,32 +518,36 @@ export default function SellerPanelClient({
 
     const validVariants = prodVariants.filter((v) => v.name.trim() !== '');
 
-    const res = await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: prodName.trim(),
-        category: prodCategory,
-        price: Number(prodPrice),
-        compareAtPrice: prodComparePrice ? Number(prodComparePrice) : null,
-        imageUrl: prodImageUrl,
-        sku: prodSku || null,
-        stock: Number(prodStock),
-        variants: validVariants,
-      }),
-    });
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: prodName.trim(),
+          category: prodCategory,
+          price: Number(prodPrice),
+          compareAtPrice: prodComparePrice ? Number(prodComparePrice) : null,
+          imageUrl: prodImageUrl,
+          sku: prodSku || null,
+          stock: Number(prodStock),
+          variants: validVariants,
+        }),
+      });
 
-    if (res.ok) {
-      showToast('Ürün başarıyla vitrine eklendi!');
-      setShowAddProduct(false);
-      setProdName('');
-      setProdPrice('');
-      setProdComparePrice('');
-      setProdImageUrl('');
-      fetchPanelData();
-    } else {
-      const err = await res.json();
-      showToast(err.error || 'Ürün eklenemedi');
+      if (res.ok) {
+        showToast('Ürün başarıyla vitrine eklendi!');
+        setShowAddProduct(false);
+        setProdName('');
+        setProdPrice('');
+        setProdComparePrice('');
+        setProdImageUrl('');
+        fetchPanelData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Ürün eklenemedi');
+      }
+    } catch {
+      showToast('Ürün eklenirken sunucu hatası oluştu');
     }
   };
 
