@@ -217,22 +217,25 @@ async function main() {
   const storeData = await panelRes.json();
   const existingNames = new Set((storeData.products || []).map((p) => p.name.trim().toLowerCase()));
 
-  // Eğer mağaza sloganı veya açıklaması boşsa profesyonel metinlerle güncelle
-  if (!storeData.tagline || !storeData.description) {
-    const patchRes = await fetch(`${BASE_URL}/api/store/${BUTIK_SLUG}`, {
-      method: 'PATCH',
-      headers: authHeaders,
-      body: JSON.stringify({
-        tagline: storeData.tagline || 'Modern Web, Mobil Uygulama, Özel Otomasyon & Teknoloji Çözümleri',
-        description:
-          storeData.description ||
-          'Poseidon Yazılım olarak işletmenizi dijital dünyada öne çıkaran kurumsal web, e-ticaret, mobil uygulama ve donanım çözümleri sunuyoruz. WhatsApp üzerinden hızlı teklif ve sipariş verebilirsiniz.',
-      }),
-    });
+  // Mağaza logosunu, adresini, slogan ve açıklamasını güncelle
+  const patchRes = await fetch(`${BASE_URL}/api/store/${BUTIK_SLUG}`, {
+    method: 'PATCH',
+    headers: authHeaders,
+    body: JSON.stringify({
+      logoUrl: '/images/poseidon/logo.jpg',
+      address: storeData.address || 'Antakya / Hatay',
+      tagline: storeData.tagline || 'Poseidon Enterprise Solutions — Web, Mobil & Özel Yazılım Çözümleri',
+      description:
+        storeData.description ||
+        'Poseidon Yazılım (Antakya / Hatay) olarak işletmenizi dijital dünyada öne çıkaran kurumsal web, e-ticaret, mobil uygulama ve donanım çözümleri sunuyoruz. WhatsApp üzerinden hızlı teklif ve sipariş verebilirsiniz.',
+    }),
+  });
 
-    if (patchRes.ok) {
-      console.log('✅ Mağaza slogan ve açıklaması güncellendi.');
-    }
+  if (patchRes.ok) {
+    console.log('✅ Mağaza logosu (/images/poseidon/logo.jpg) ve profil bilgileri güncellendi.');
+  } else {
+    const err = await patchRes.json().catch(() => ({}));
+    console.warn('⚠️ Mağaza profili güncellenemedi:', err.error || patchRes.status);
   }
 
   // 3. Ürünleri Ekle

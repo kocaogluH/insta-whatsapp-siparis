@@ -72,6 +72,26 @@ export const storeUpdateSchema = z.object({
   address: z.string().trim().max(300, 'Adres en fazla 300 karakter olabilir.').optional().nullable(),
   allowStorePickup: z.boolean().optional(),
   ibanInfo: z.string().trim().max(150, 'IBAN bilgisi en fazla 150 karakter olabilir.').optional().nullable(),
+  logoUrl: z
+    .string()
+    .trim()
+    .max(500, 'Logo URL en fazla 500 karakter olabilir.')
+    .refine(
+      (val) => val.startsWith('/images/') || val.startsWith('/uploads/') || val.startsWith('https://'),
+      'Geçersiz logo görsel yolu.'
+    )
+    .optional()
+    .nullable(),
+  bannerUrl: z
+    .string()
+    .trim()
+    .max(500, 'Banner URL en fazla 500 karakter olabilir.')
+    .refine(
+      (val) => val.startsWith('/images/') || val.startsWith('/uploads/') || val.startsWith('https://'),
+      'Geçersiz banner görsel yolu.'
+    )
+    .optional()
+    .nullable(),
 });
 
 export const productVariantSchema = z.object({

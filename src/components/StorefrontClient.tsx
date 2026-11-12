@@ -95,7 +95,6 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
-  const [activeStory, setActiveStory] = useState<StoryType | null>(null);
 
   // Checkout Form State
   const [customerName, setCustomerName] = useState('');
@@ -438,34 +437,6 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               </span>
             </button>
           </div>
-
-          {/* Instagram Stories / Highlights in Organic Earth Gradient */}
-          {store.stories && store.stories.length > 0 && (
-            <div className="pt-2 border-t border-[#f2ece1]">
-              <div className="flex items-center gap-4 overflow-x-auto py-2 no-scrollbar">
-                {store.stories.map((st) => (
-                  <button
-                    key={st.id}
-                    onClick={() => setActiveStory(st)}
-                    className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
-                  >
-                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full p-[2px] bg-gradient-to-tr from-[#ba9b81] via-[#a3b899] to-[#8c5f4a] shadow-xs group-hover:scale-105 transition">
-                      <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-[#f2ece1]">
-                        <img
-                          src={st.imageUrl}
-                          alt={st.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-semibold text-[#4a3f39] max-w-[70px] truncate text-center">
-                      {st.title}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -701,33 +672,6 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
               Siparişi Tamamla →
             </span>
           </button>
-        </div>
-      )}
-
-      {/* Story View Modal */}
-      {activeStory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative max-w-sm w-full bg-[#2b221d] rounded-3xl overflow-hidden shadow-2xl border border-[#3e312b]">
-            <button
-              onClick={() => setActiveStory(null)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="aspect-9/16 w-full relative">
-              <img
-                src={activeStory.imageUrl}
-                alt={activeStory.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black via-black/60 to-transparent text-white">
-                <h4 className="font-bold text-lg">{activeStory.title}</h4>
-                <p className="text-xs text-[#cfbeab] mt-1">
-                  Öne çıkan vitrin hikayesi
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

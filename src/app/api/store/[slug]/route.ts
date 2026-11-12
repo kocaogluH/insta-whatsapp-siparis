@@ -180,6 +180,8 @@ export async function PATCH(
         address: data.address,
         allowStorePickup: data.allowStorePickup,
         ibanInfo: data.ibanInfo,
+        logoUrl: data.logoUrl,
+        bannerUrl: data.bannerUrl,
       },
       select: {
         id: true,
@@ -187,6 +189,8 @@ export async function PATCH(
         name: true,
         tagline: true,
         description: true,
+        logoUrl: true,
+        bannerUrl: true,
         whatsappPhone: true,
         instagramHandle: true,
         shippingFee: true,
