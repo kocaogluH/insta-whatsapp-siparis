@@ -73,6 +73,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "06 - Scriptler ve Testler",
 	ProjectSection(SolutionItems) = preProject
 		scripts\migrate-pins.js = scripts\migrate-pins.js
 		scripts\security-check.mjs = scripts\security-check.mjs
+		scripts\seed-poseidon.mjs = scripts\seed-poseidon.mjs
 		scripts\test-concurrency.js = scripts\test-concurrency.js
 		scripts\test-order-flow.js = scripts\test-order-flow.js
 	EndProjectSection
