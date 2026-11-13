@@ -16,6 +16,9 @@ import {
   Truck,
   Sparkles,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Camera,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -46,6 +49,7 @@ export interface ProductType {
   price: number;
   compareAtPrice: number | null;
   imageUrl: string;
+  images?: string[];
   category: string;
   isActive: boolean;
   hideWhenOutOfStock: boolean;
@@ -94,6 +98,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [activeImageIndices, setActiveImageIndices] = useState<Record<string, number>>({});
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   // Checkout Form State
@@ -518,31 +523,110 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                 currentVariant?.name
               );
 
+              const productImages =
+                product.images && product.images.length > 0
+                  ? product.images
+                  : [product.imageUrl];
+              const currentImgIdx = activeImageIndices[product.id] || 0;
+              const activeImgUrl = productImages[currentImgIdx] || product.imageUrl;
+
+              const handlePrevImg = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setActiveImageIndices((prev) => ({
+                  ...prev,
+                  [product.id]:
+                    (currentImgIdx - 1 + productImages.length) % productImages.length,
+                }));
+              };
+
+              const handleNextImg = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setActiveImageIndices((prev) => ({
+                  ...prev,
+                  [product.id]: (currentImgIdx + 1) % productImages.length,
+                }));
+              };
+
               return (
                 <div
                   key={product.id}
                   className="bg-white rounded-3xl border border-[#e5dcce] overflow-hidden shadow-xs hover:border-[#ba9b81] transition flex flex-col justify-between group"
                 >
                   {/* Photo Container */}
-                  <div className="relative aspect-3/4 bg-[#f2ece1] overflow-hidden">
+                  <div className="relative aspect-3/4 bg-[#f2ece1] overflow-hidden select-none">
                     <img
-                      src={product.imageUrl}
-                      alt={product.name}
+                      src={activeImgUrl}
+                      alt={`${product.name} - Görsel ${currentImgIdx + 1}`}
                       className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
                     />
 
                     {discountPercent && (
-                      <span className="absolute top-2.5 left-2.5 bg-[#8c5f4a] text-[#f7f4ee] font-bold text-[10px] px-2 py-0.5 rounded-full shadow-xs">
+                      <span className="absolute top-2.5 left-2.5 bg-[#8c5f4a] text-[#f7f4ee] font-bold text-[10px] px-2 py-0.5 rounded-full shadow-xs pointer-events-none z-10">
                         %{discountPercent} İndirim
                       </span>
                     )}
 
+                    {productImages.length > 1 && (
+                      <span className="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 z-10 pointer-events-none">
+                        <Camera className="w-3 h-3" />
+                        {currentImgIdx + 1}/{productImages.length}
+                      </span>
+                    )}
+
                     {isOutOfStock && (
-                      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
                         <span className="bg-white text-[#33261f] font-bold text-xs px-3 py-1.5 rounded-full shadow-md">
                           Tükendi
                         </span>
                       </div>
+                    )}
+
+                    {/* Left/Right Navigation Arrows for Multiple Images */}
+                    {productImages.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handlePrevImg}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 hover:bg-white text-[#33261f] shadow-md flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition duration-200 z-10 cursor-pointer"
+                          aria-label="Önceki fotoğraf"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleNextImg}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 hover:bg-white text-[#33261f] shadow-md flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition duration-200 z-10 cursor-pointer"
+                          aria-label="Sonraki fotoğraf"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+
+                        {/* Navigation Dots */}
+                        <div className="absolute bottom-2 inset-x-0 flex items-center justify-center gap-1 z-10 pointer-events-auto">
+                          {productImages.map((_, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setActiveImageIndices((prev) => ({
+                                  ...prev,
+                                  [product.id]: idx,
+                                }));
+                              }}
+                              className={`rounded-full transition-all cursor-pointer ${
+                                idx === currentImgIdx
+                                  ? 'w-4 h-1.5 bg-white shadow-xs'
+                                  : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                              }`}
+                              aria-label={`Fotoğraf ${idx + 1}`}
+                            />
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
 

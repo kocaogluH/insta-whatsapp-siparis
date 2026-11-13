@@ -66,6 +66,23 @@ export async function PATCH(
       dataToUpdate.hideWhenOutOfStock = body.hideWhenOutOfStock;
     if (typeof body.price === 'number') dataToUpdate.price = Math.max(0, body.price);
     if (typeof body.name === 'string') dataToUpdate.name = String(body.name).slice(0, 150).trim();
+    if (typeof body.category === 'string') dataToUpdate.category = String(body.category).slice(0, 50).trim();
+    if (body.compareAtPrice !== undefined) {
+      dataToUpdate.compareAtPrice =
+        typeof body.compareAtPrice === 'number' ? Math.max(0, body.compareAtPrice) : null;
+    }
+    if (body.description !== undefined) {
+      dataToUpdate.description =
+        typeof body.description === 'string' ? String(body.description).slice(0, 2000).trim() : null;
+    }
+
+    if (Array.isArray(body.images) && body.images.length > 0) {
+      dataToUpdate.images = JSON.stringify(body.images);
+      dataToUpdate.imageUrl = String(body.images[0]);
+    } else if (typeof body.imageUrl === 'string' && body.imageUrl.trim()) {
+      dataToUpdate.imageUrl = body.imageUrl.trim();
+      dataToUpdate.images = JSON.stringify([body.imageUrl.trim()]);
+    }
 
     const updated = await prisma.product.update({
       where: { id },

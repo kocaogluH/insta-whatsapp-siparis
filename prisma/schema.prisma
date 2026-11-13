@@ -53,6 +53,7 @@ model Product {
   price              Float
   compareAtPrice     Float?
   imageUrl           String
+  images             String?
   category           String           @default("Genel")
   sku                String?
   barcode            String?

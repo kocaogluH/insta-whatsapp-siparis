@@ -25,6 +25,9 @@ import {
   LogOut,
   KeyRound,
   Trash2,
+  Edit3,
+  X,
+  ImageIcon,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -48,6 +51,7 @@ export interface Product {
   price: number;
   compareAtPrice: number | null;
   imageUrl: string;
+  images?: string[];
   category: string;
   sku: string | null;
   barcode: string | null;
@@ -191,6 +195,7 @@ export default function SellerPanelClient({
   const [prodPrice, setProdPrice] = useState('');
   const [prodComparePrice, setProdComparePrice] = useState('');
   const [prodImageUrl, setProdImageUrl] = useState('');
+  const [prodImages, setProdImages] = useState<string[]>([]);
   const [prodSku, setProdSku] = useState('');
   const [prodStock, setProdStock] = useState('10');
   const [prodVariants, setProdVariants] = useState<
@@ -200,6 +205,17 @@ export default function SellerPanelClient({
     { name: 'M', sku: '', stock: 5 },
   ]);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+
+  // Ürün Düzenleme (Edit Product) State'i
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editComparePrice, setEditComparePrice] = useState('');
+  const [editStock, setEditStock] = useState('');
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [uploadingEditImage, setUploadingEditImage] = useState(false);
 
   // Ayarlar Form State'i
   const [settings, setSettings] = useState({
@@ -481,40 +497,55 @@ export default function SellerPanelClient({
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setUploadingImage(true);
     try {
-      // 1000px boyutuna küçült
-      const optimizedFile = await resizeImageBeforeUpload(file, 1000);
-      const formData = new FormData();
-      formData.append('file', optimizedFile);
+      for (const file of files) {
+        // 1000px boyutuna küçült
+        const optimizedFile = await resizeImageBeforeUpload(file, 1000);
+        const formData = new FormData();
+        formData.append('file', optimizedFile);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        setProdImageUrl(data.url);
-        showToast('Fotoğraf başarıyla yüklendi! 📸');
-      } else {
-        const err = await res.json();
-        showToast(err.error || 'Fotoğraf yüklenemedi');
+        if (res.ok) {
+          const data = await res.json();
+          setProdImages((prev) => [...prev, data.url]);
+          setProdImageUrl((prev) => prev || data.url);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.error || 'Bir fotoğraf yüklenemedi');
+        }
       }
+      showToast('Fotoğraf(lar) eklendi! 📸');
     } catch {
       showToast('Yükleme sırasında hata oluştu');
     } finally {
       setUploadingImage(false);
+      if (e.target) e.target.value = '';
     }
+  };
+
+  const handleRemoveProdImage = (idxToRemove: number) => {
+    setProdImages((prev) => {
+      const next = prev.filter((_, idx) => idx !== idxToRemove);
+      setProdImageUrl(next[0] || '');
+      return next;
+    });
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prodName || !prodPrice || !prodImageUrl) {
-      showToast('Lütfen ürün adı, fiyat ve fotoğraf ekleyin.');
+    const finalImages =
+      prodImages.length > 0 ? prodImages : prodImageUrl.trim() ? [prodImageUrl.trim()] : [];
+
+    if (!prodName || !prodPrice || finalImages.length === 0) {
+      showToast('Lütfen ürün adı, fiyat ve en az 1 fotoğraf ekleyin.');
       return;
     }
 
@@ -529,7 +560,8 @@ export default function SellerPanelClient({
           category: prodCategory,
           price: Number(prodPrice),
           compareAtPrice: prodComparePrice ? Number(prodComparePrice) : null,
-          imageUrl: prodImageUrl,
+          imageUrl: finalImages[0],
+          images: finalImages,
           sku: prodSku || null,
           stock: Number(prodStock),
           variants: validVariants,
@@ -543,6 +575,7 @@ export default function SellerPanelClient({
         setProdPrice('');
         setProdComparePrice('');
         setProdImageUrl('');
+        setProdImages([]);
         fetchPanelData();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -550,6 +583,98 @@ export default function SellerPanelClient({
       }
     } catch {
       showToast('Ürün eklenirken sunucu hatası oluştu');
+    }
+  };
+
+  const handleOpenEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setEditName(product.name);
+    setEditCategory(product.category || 'Genel');
+    setEditPrice(String(product.price));
+    setEditComparePrice(product.compareAtPrice ? String(product.compareAtPrice) : '');
+    setEditStock(String(product.stock));
+    const currentImgs =
+      product.images && product.images.length > 0
+        ? product.images
+        : product.imageUrl
+          ? [product.imageUrl]
+          : [];
+    setEditImages(currentImgs);
+  };
+
+  const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingEditImage(true);
+    try {
+      for (const file of files) {
+        const optimizedFile = await resizeImageBeforeUpload(file, 1000);
+        const formData = new FormData();
+        formData.append('file', optimizedFile);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setEditImages((prev) => [...prev, data.url]);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.error || 'Bir fotoğraf yüklenemedi');
+        }
+      }
+      showToast('Yeni fotoğraf(lar) eklendi! 📸');
+    } catch {
+      showToast('Yükleme sırasında hata oluştu');
+    } finally {
+      setUploadingEditImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemoveEditImage = (idxToRemove: number) => {
+    setEditImages((prev) => prev.filter((_, idx) => idx !== idxToRemove));
+  };
+
+  const handleSaveProductEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    if (!editName.trim() || !editPrice || editImages.length === 0) {
+      showToast('Lütfen ürün adı, geçerli fiyat ve en az 1 fotoğraf belirleyin.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`/api/products/${editingProduct.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName.trim(),
+          category: editCategory.trim() || 'Genel',
+          price: Number(editPrice),
+          compareAtPrice: editComparePrice ? Number(editComparePrice) : null,
+          stock: Math.max(0, Number(editStock) || 0),
+          imageUrl: editImages[0],
+          images: editImages,
+        }),
+      });
+
+      if (res.ok) {
+        showToast('Ürün başarıyla güncellendi! ✨');
+        setEditingProduct(null);
+        fetchPanelData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Ürün güncellenemedi');
+      }
+    } catch {
+      showToast('Güncelleme sırasında hata oluştu');
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -1024,15 +1149,24 @@ export default function SellerPanelClient({
                   </div>
 
                   <div className="sm:col-span-2 space-y-2">
-                    <label className="block text-xs font-semibold text-[#4a3f39]">
-                      Ürün Fotoğrafı (Kameradan Çek veya Galeriden Seç) *
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-[#4a3f39]">
+                        Ürün Fotoğrafları (En az 1 adet, birden fazla seçebilirsiniz) *
+                      </label>
+                      {prodImages.length > 0 && (
+                        <span className="text-[10px] text-[#8c5f4a] font-bold">
+                          {prodImages.length} fotoğraf seçildi
+                        </span>
+                      )}
+                    </div>
+
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                       <label className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#f2ece1] hover:bg-[#eae3d6] text-[#33261f] border border-[#e5dcce] text-xs font-semibold cursor-pointer transition">
                         <Camera className="w-4 h-4 text-[#8c5f4a]" />
-                        <span>{uploadingImage ? 'Yükleniyor...' : 'Kamera / Fotoğraf Seç'}</span>
+                        <span>{uploadingImage ? 'Yükleniyor...' : '+ Fotoğraf(lar) Seç'}</span>
                         <input
                           type="file"
+                          multiple
                           accept="image/jpeg,image/png,image/webp"
                           capture="environment"
                           onChange={handleFileUpload}
@@ -1041,25 +1175,62 @@ export default function SellerPanelClient({
                         />
                       </label>
 
-                      <input
-                        type="url"
-                        placeholder="veya fotoğraf linki (URL) yapıştırın..."
-                        value={prodImageUrl}
-                        onChange={(e) => setProdImageUrl(e.target.value)}
-                        className="w-full flex-1 px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs outline-none focus:border-[#8c5f4a] text-[#33261f]"
-                      />
+                      <div className="w-full flex-1 flex gap-2">
+                        <input
+                          type="url"
+                          placeholder="veya fotoğraf linki (URL) yapıştırın..."
+                          value={prodImageUrl}
+                          onChange={(e) => setProdImageUrl(e.target.value)}
+                          className="flex-1 px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs outline-none focus:border-[#8c5f4a] text-[#33261f]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (prodImageUrl.trim()) {
+                              setProdImages((prev) => [...prev, prodImageUrl.trim()]);
+                              setProdImageUrl('');
+                            }
+                          }}
+                          className="px-3 py-2 rounded-xl bg-[#f2ece1] hover:bg-[#eae3d6] text-xs font-bold text-[#33261f] cursor-pointer"
+                        >
+                          Ekle
+                        </button>
+                      </div>
                     </div>
 
-                    {prodImageUrl && (
-                      <div className="mt-2 flex items-center gap-3 p-2 bg-[#f9f7f2] rounded-xl border border-[#ede5d8]">
-                        <img
-                          src={prodImageUrl}
-                          alt="Önizleme"
-                          className="w-12 h-12 object-cover rounded-lg border border-[#e5dcce]"
-                        />
-                        <span className="text-xs text-[#415e58] font-medium flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Fotoğraf hazır
-                        </span>
+                    {/* Çoklu Fotoğraf Önizleme Galerisi */}
+                    {prodImages.length > 0 && (
+                      <div className="mt-2 p-2.5 bg-[#f9f7f2] rounded-2xl border border-[#ede5d8]">
+                        <p className="text-[10px] text-[#78695e] mb-2 font-medium">
+                          İlk fotoğraf ana kapak görselidir. İstemediğiniz görselin üzerindeki çarpıya (×) basarak silebilirsiniz.
+                        </p>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                          {prodImages.map((imgUrl, idx) => (
+                            <div
+                              key={idx}
+                              className="relative aspect-square rounded-xl overflow-hidden border border-[#e5dcce] bg-white group/thumb"
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={`Önizleme ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {idx === 0 && (
+                                <span className="absolute top-1 left-1 bg-[#8c5f4a] text-white text-[8px] font-bold px-1 rounded shadow-xs">
+                                  Kapak
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProdImage(idx)}
+                                className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-[#b91c1c] text-white transition cursor-pointer"
+                                title="Fotoğrafı Kaldır"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1090,11 +1261,19 @@ export default function SellerPanelClient({
                   key={p.id}
                   className="bg-white rounded-2xl border border-[#e5dcce] p-4 flex gap-3 shadow-xs"
                 >
-                  <img
-                    src={p.imageUrl}
-                    alt={p.name}
-                    className="w-20 h-24 object-cover rounded-xl bg-[#f2ece1] shrink-0 border border-[#e5dcce]"
-                  />
+                  <div className="relative w-20 h-24 shrink-0 rounded-xl overflow-hidden bg-[#f2ece1] border border-[#e5dcce]">
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {p.images && p.images.length > 1 && (
+                      <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        <ImageIcon className="w-2.5 h-2.5" />
+                        {p.images.length}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between gap-1">
@@ -1106,15 +1285,25 @@ export default function SellerPanelClient({
                             {p.category}
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteProduct(p.id, p.name)}
-                          disabled={deletingProductId === p.id}
-                          className="p-1.5 text-[#a89a90] hover:text-[#b91c1c] hover:bg-[#fee2e2] rounded-lg transition shrink-0 cursor-pointer disabled:opacity-50"
-                          title="Ürünü Sil"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditProduct(p)}
+                            className="p-1.5 text-[#78695e] hover:text-[#33261f] hover:bg-[#f2ece1] rounded-lg transition cursor-pointer"
+                            title="Ürünü ve Fotoğraflarını Düzenle"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProduct(p.id, p.name)}
+                            disabled={deletingProductId === p.id}
+                            className="p-1.5 text-[#a89a90] hover:text-[#b91c1c] hover:bg-[#fee2e2] rounded-lg transition shrink-0 cursor-pointer disabled:opacity-50"
+                            title="Ürünü Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                       <div className="flex items-baseline gap-2 mt-1">
                         <span className="text-sm font-bold text-[#8c5f4a]">
@@ -1152,6 +1341,175 @@ export default function SellerPanelClient({
                 </div>
               ))}
             </div>
+
+            {/* Ürün Düzenleme Modal */}
+            {editingProduct && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                <div className="relative max-w-lg w-full bg-white rounded-3xl overflow-hidden shadow-2xl border border-[#e5dcce] max-h-[90vh] flex flex-col">
+                  {/* Header */}
+                  <div className="px-5 py-4 border-b border-[#f2ece1] flex items-center justify-between bg-[#fdfcf9]">
+                    <div className="flex items-center gap-2">
+                      <Edit3 className="w-4 h-4 text-[#8c5f4a]" />
+                      <h3 className="font-bold text-sm sm:text-base text-[#33261f] truncate max-w-[320px]">
+                        Ürünü Düzenle: {editingProduct.name}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingProduct(null)}
+                      className="p-1.5 text-[#78695e] hover:bg-[#f2ece1] rounded-xl transition cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Form Body */}
+                  <form onSubmit={handleSaveProductEdit} className="p-5 overflow-y-auto space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                        Ürün Adı *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                          Kategori
+                        </label>
+                        <input
+                          type="text"
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                          Toplam Stok
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editStock}
+                          onChange={(e) => setEditStock(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                          Satış Fiyatı (₺) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          required
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                          İndirimsiz Liste Fiyatı (₺)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={editComparePrice}
+                          onChange={(e) => setEditComparePrice(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none focus:border-[#8c5f4a] text-[#33261f]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fotoğraf Galerisi */}
+                    <div className="space-y-2 border-t border-[#f2ece1] pt-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-[#4a3f39]">
+                          Ürün Fotoğrafları ({editImages.length})
+                        </label>
+                        <span className="text-[10px] text-[#78695e]">
+                          İlk görsel ana kapaktır
+                        </span>
+                      </div>
+
+                      {/* Thumbnails Grid */}
+                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                        {editImages.map((imgUrl, idx) => (
+                          <div
+                            key={idx}
+                            className="relative aspect-square rounded-xl overflow-hidden border border-[#e5dcce] bg-[#f2ece1] group/img"
+                          >
+                            <img
+                              src={imgUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                            {idx === 0 && (
+                              <span className="absolute top-1 left-1 bg-[#8c5f4a] text-white text-[8px] font-bold px-1 rounded shadow-xs">
+                                Kapak
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveEditImage(idx)}
+                              className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-[#b91c1c] text-white transition cursor-pointer"
+                              title="Fotoğrafı Kaldır"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Add More Photo Button */}
+                        <label className="aspect-square rounded-xl border-2 border-dashed border-[#e5dcce] hover:border-[#8c5f4a] flex flex-col items-center justify-center text-[#78695e] hover:text-[#8c5f4a] bg-[#fdfcf9] cursor-pointer transition p-1 text-center">
+                          <Plus className="w-4 h-4 mb-0.5" />
+                          <span className="text-[9px] font-bold leading-tight">
+                            {uploadingEditImage ? '...' : '+ Ekle'}
+                          </span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleEditFileUpload}
+                            className="hidden"
+                            disabled={uploadingEditImage}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="pt-3 border-t border-[#f2ece1] flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingProduct(null)}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-[#78695e] hover:bg-[#f2ece1] transition cursor-pointer"
+                      >
+                        İptal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingEdit}
+                        className="px-5 py-2 rounded-xl text-xs font-bold bg-[#3e312b] hover:bg-[#2b221d] text-[#f7f4ee] shadow-xs cursor-pointer transition disabled:opacity-50"
+                      >
+                        {isSavingEdit ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

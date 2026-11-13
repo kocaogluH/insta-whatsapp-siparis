@@ -34,6 +34,12 @@ export async function POST(req: Request) {
         ? variantList.reduce((acc, v) => acc + v.stock, 0)
         : validated.stock;
 
+    const allImages =
+      validated.images && validated.images.length > 0
+        ? validated.images
+        : [validated.imageUrl];
+    const mainCoverImage = allImages[0] || validated.imageUrl;
+
     // GÜVENLİK: storeId asla client'tan alınmaz; doğrudan doğrulanmış oturumdaki session.storeId kullanılır!
     const product = await prisma.product.create({
       data: {
@@ -42,7 +48,8 @@ export async function POST(req: Request) {
         description: validated.description,
         price: validated.price,
         compareAtPrice: validated.compareAtPrice,
-        imageUrl: validated.imageUrl,
+        imageUrl: mainCoverImage,
+        images: JSON.stringify(allImages),
         category: validated.category,
         sku: (body.sku ? String(body.sku).slice(0, 50).trim() : null),
         barcode: (body.barcode ? String(body.barcode).slice(0, 50).trim() : null),

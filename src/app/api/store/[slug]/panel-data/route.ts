@@ -56,7 +56,29 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(store);
+    const mappedProducts = store.products.map((p) => {
+      let parsedImages: string[] = [];
+      if (p.images) {
+        try {
+          const arr = JSON.parse(p.images);
+          if (Array.isArray(arr) && arr.length > 0) {
+            parsedImages = arr;
+          }
+        } catch {}
+      }
+      if (parsedImages.length === 0 && p.imageUrl) {
+        parsedImages = [p.imageUrl];
+      }
+      return {
+        ...p,
+        images: parsedImages,
+      };
+    });
+
+    return NextResponse.json({
+      ...store,
+      products: mappedProducts,
+    });
   } catch (error) {
     console.error('GET /api/store/[slug]/panel-data error:', error);
     return NextResponse.json(

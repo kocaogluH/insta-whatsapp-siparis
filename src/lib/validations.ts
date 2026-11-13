@@ -129,6 +129,24 @@ export const productCreateSchema = z.object({
         /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(val),
       'Geçersiz görsel formatı veya bağlantısı.'
     ),
+  images: z
+    .array(
+      z
+        .string()
+        .trim()
+        .max(2_200_000, 'Görsel verisi çok büyük.')
+        .refine(
+          (val) =>
+            val.startsWith('https://') ||
+            val.startsWith('http://') ||
+            val.startsWith('/images/') ||
+            val.startsWith('/uploads/') ||
+            /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(val),
+          'Geçersiz görsel formatı veya bağlantısı.'
+        )
+    )
+    .optional()
+    .default([]),
   category: z.string().trim().max(50).optional().default('Genel'),
   stock: z.number().int().min(0).max(100000).default(0),
   isActive: z.boolean().optional().default(true),

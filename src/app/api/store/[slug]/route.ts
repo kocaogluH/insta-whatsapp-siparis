@@ -58,6 +58,7 @@ export async function GET(
             price: true,
             compareAtPrice: true,
             imageUrl: true,
+            images: true,
             category: true,
             stock: true, // Sunucuda inStock / lowStock hesaplamak için seçilir, istemciye gönderilmez
             isActive: true,
@@ -93,6 +94,19 @@ export async function GET(
         lowStock: v.stock > 0 && v.stock <= 3,
       }));
 
+      let parsedImages: string[] = [];
+      if (p.images) {
+        try {
+          const arr = JSON.parse(p.images);
+          if (Array.isArray(arr) && arr.length > 0) {
+            parsedImages = arr;
+          }
+        } catch {}
+      }
+      if (parsedImages.length === 0 && p.imageUrl) {
+        parsedImages = [p.imageUrl];
+      }
+
       return {
         id: p.id,
         name: p.name,
@@ -100,6 +114,7 @@ export async function GET(
         price: p.price,
         compareAtPrice: p.compareAtPrice,
         imageUrl: p.imageUrl,
+        images: parsedImages,
         category: p.category,
         isActive: p.isActive,
         hideWhenOutOfStock: p.hideWhenOutOfStock,
