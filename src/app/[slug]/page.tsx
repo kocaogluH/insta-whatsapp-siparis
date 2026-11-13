@@ -2,9 +2,24 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { ensureDemoStore } from '@/lib/ensureSeed';
+import { SITE_NAME, BASE_URL } from '@/lib/constants';
 import StorefrontClient from '@/components/StorefrontClient';
 
 export const dynamic = 'force-dynamic';
+
+function resolveStoreOgImageUrl(bannerUrl: string | null, slug: string): string {
+  if (bannerUrl && !bannerUrl.includes('w=300')) {
+    const upgraded = bannerUrl.replace(/([?&])w=400\b/g, '$1w=1200');
+    if (upgraded.startsWith('http://') || upgraded.startsWith('https://')) {
+      return upgraded;
+    }
+    if (upgraded.startsWith('/')) {
+      return `${BASE_URL}${upgraded}`;
+    }
+  }
+  // Banner yoksa veya küçük bir görsel ise logoyu 1200x630'a ortalayan OG endpoint'ini kullan
+  return `${BASE_URL}/api/og/${slug}`;
+}
 
 export async function generateMetadata({
   params,
@@ -27,7 +42,7 @@ export async function generateMetadata({
 
   if (!store) {
     return {
-      title: 'Mağaza Bulunamadı | InstaSipariş',
+      title: `Mağaza Bulunamadı | ${SITE_NAME}`,
     };
   }
 
@@ -37,14 +52,25 @@ export async function generateMetadata({
     store.description ||
     `${store.name} güncel ürünlerini inceleyin, Instagram veya WhatsApp üzerinden hızlıca sipariş verin.`;
 
-  const ogImages = store.logoUrl ? [store.logoUrl] : store.bannerUrl ? [store.bannerUrl] : [];
+  const ogImageUrl = resolveStoreOgImageUrl(store.bannerUrl, slug);
+  const ogImages = [
+    {
+      url: ogImageUrl,
+      width: 1200,
+      height: 630,
+      alt: store.name,
+    },
+  ];
 
   return {
-    title,
+    title: {
+      absolute: `${title} - ${SITE_NAME}`,
+    },
     description,
     openGraph: {
       title,
       description,
+      siteName: SITE_NAME,
       images: ogImages,
       type: 'website',
     },
@@ -52,7 +78,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title,
       description,
-      images: ogImages,
+      images: [ogImageUrl],
     },
   };
 }
@@ -82,6 +108,9 @@ export default async function StorePage({
       instagramHandle: true,
       shippingFee: true,
       freeShippingThreshold: true,
+      storeType: true,
+      whatsappTemplate: true,
+      verified: true,
       address: true,
       allowStorePickup: true,
       isActive: true,
@@ -183,6 +212,9 @@ export default async function StorePage({
     instagramHandle: store.instagramHandle,
     shippingFee: store.shippingFee,
     freeShippingThreshold: store.freeShippingThreshold,
+    storeType: store.storeType,
+    whatsappTemplate: store.whatsappTemplate,
+    verified: store.verified,
     address: store.address,
     allowStorePickup: store.allowStorePickup,
     stories: store.stories,

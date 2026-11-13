@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SITE_NAME } from '@/lib/constants';
 import {
   ShoppingBag,
   Plus,
@@ -25,7 +26,7 @@ export default function HomePage() {
             </div>
             <div>
               <span className="font-bold text-base sm:text-lg tracking-tight text-[#33261f]">
-                Fiyat Cepte
+                {SITE_NAME}
               </span>
               <span className="ml-2 bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
                 Hızlı Butik &amp; Sipariş Platformu
@@ -187,7 +188,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-[#e5dcce] py-6 px-4 bg-white/40 text-center text-xs text-[#78695e]">
-        Fiyat Cepte Platformu &bull; Instagram &amp; WhatsApp Hızlı Butik ve Sipariş Altyapısı
+        {SITE_NAME} Platformu &bull; Instagram &amp; WhatsApp Hızlı Butik ve Sipariş Altyapısı
       </footer>
     </div>
   );

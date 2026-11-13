@@ -185,7 +185,10 @@ export async function POST(req: Request) {
 
         // Kargo & Toplam Tutar Hesabı
         const calculatedShippingCost =
-          isPickup || (store.freeShippingThreshold > 0 && calculatedSubtotal >= store.freeShippingThreshold)
+          isPickup ||
+          (typeof store.freeShippingThreshold === 'number' &&
+            store.freeShippingThreshold > 0 &&
+            calculatedSubtotal >= store.freeShippingThreshold)
             ? 0
             : store.shippingFee;
         const calculatedTotalAmount = calculatedSubtotal + calculatedShippingCost;

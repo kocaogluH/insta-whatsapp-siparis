@@ -90,19 +90,53 @@ export function buildOrderMessage(payload: OrderMessagePayload): string {
   return lines.join('\n');
 }
 
+export const DEFAULT_PHYSICAL_WHATSAPP_TEMPLATE =
+  'Merhaba 👋 Vitrininizdeki *{urun}* ({fiyat}) ürünü hakkında bilgi almak istiyorum. Stok durumu uygun mudur?';
+
+export const DEFAULT_SERVICE_WHATSAPP_TEMPLATE =
+  'Merhaba 👋 Vitrininizdeki *{urun}* ({fiyat}) için: Fiyat ve teslim süresi hakkında bilgi almak istiyorum.';
+
 export function buildProductQuestionWhatsAppUrl(
   storePhone: string,
   productName: string,
   price: number,
   sku?: string | null,
-  variantName?: string | null
+  variantName?: string | null,
+  options?: {
+    storeType?: string | null;
+    whatsappTemplate?: string | null;
+  }
 ): string {
   const cleanPhone = cleanPhoneForWhatsApp(storePhone);
   const variantPart = variantName ? ` (${variantName})` : '';
   const skuPart = sku ? ` [Kod: ${sku}]` : '';
-  const text = `Merhaba 👋 Vitrininizdeki *${productName}${variantPart}*${skuPart} (${formatCurrency(
-    price
-  )}) ürünü hakkında bilgi almak istiyorum. Stok durumu uygun mudur?`;
+  const fullProductTitle = `${productName}${variantPart}${skuPart}`;
+  const formattedPrice = formatCurrency(price);
+
+  const customTemplate = options?.whatsappTemplate?.trim();
+  const isService = options?.storeType === 'SERVICE';
+
+  let text: string;
+  if (customTemplate) {
+    if (customTemplate.includes('{urun}') || customTemplate.includes('{fiyat}')) {
+      text = customTemplate
+        .replace(/\{urun\}/g, fullProductTitle)
+        .replace(/\{fiyat\}/g, formattedPrice);
+    } else {
+      text = `Merhaba 👋 Vitrininizdeki *${fullProductTitle}* (${formattedPrice}) — ${customTemplate}`;
+    }
+  } else if (isService) {
+    text = DEFAULT_SERVICE_WHATSAPP_TEMPLATE.replace(
+      /\{urun\}/g,
+      fullProductTitle
+    ).replace(/\{fiyat\}/g, formattedPrice);
+  } else {
+    text = DEFAULT_PHYSICAL_WHATSAPP_TEMPLATE.replace(
+      /\{urun\}/g,
+      fullProductTitle
+    ).replace(/\{fiyat\}/g, formattedPrice);
+  }
+
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 }
 

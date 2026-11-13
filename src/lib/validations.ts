@@ -49,6 +49,9 @@ export const storeCreateSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/, 'Geçersiz tema rengi kodu.')
     .optional()
     .default('#3c302a'),
+  storeType: z.enum(['PHYSICAL', 'SERVICE']).optional().default('PHYSICAL'),
+  whatsappTemplate: z.string().trim().max(500).optional().nullable(),
+  verified: z.boolean().optional().default(false),
 });
 
 export const storeUpdateSchema = z.object({
@@ -68,7 +71,14 @@ export const storeUpdateSchema = z.object({
     .transform((v) => v.replace(/^@/, ''))
     .optional(),
   shippingFee: z.number().min(0, 'Kargo ücreti negatif olamaz.').max(10000).optional(),
-  freeShippingThreshold: z.number().min(0).max(100000).optional(),
+  freeShippingThreshold: z.number().min(0).max(100000).optional().nullable(),
+  storeType: z.enum(['PHYSICAL', 'SERVICE']).optional(),
+  whatsappTemplate: z
+    .string()
+    .trim()
+    .max(500, 'WhatsApp mesaj şablonu en fazla 500 karakter olabilir.')
+    .optional()
+    .nullable(),
   address: z.string().trim().max(300, 'Adres en fazla 300 karakter olabilir.').optional().nullable(),
   allowStorePickup: z.boolean().optional(),
   ibanInfo: z.string().trim().max(150, 'IBAN bilgisi en fazla 150 karakter olabilir.').optional().nullable(),

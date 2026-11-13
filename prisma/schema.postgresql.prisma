@@ -19,7 +19,10 @@ model Store {
   whatsappPhone         String
   instagramHandle       String
   shippingFee           Float       @default(49.90)
-  freeShippingThreshold Float       @default(750.0)
+  freeShippingThreshold Float?
+  storeType             String      @default("PHYSICAL") // "PHYSICAL" | "SERVICE"
+  whatsappTemplate      String?
+  verified              Boolean     @default(false)
   address               String?
   allowStorePickup      Boolean     @default(true)
   ibanInfo              String?

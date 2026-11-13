@@ -71,7 +71,10 @@ export interface StoreType {
   whatsappPhone: string;
   instagramHandle: string;
   shippingFee: number;
-  freeShippingThreshold: number;
+  freeShippingThreshold: number | null;
+  storeType?: string;
+  whatsappTemplate?: string | null;
+  verified?: boolean;
   address: string | null;
   allowStorePickup: boolean;
   ibanInfo?: string | null;
@@ -238,14 +241,29 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
     [cart]
   );
 
+  const hasFreeShippingThreshold =
+    typeof store.freeShippingThreshold === 'number' &&
+    store.freeShippingThreshold > 0;
+
   const shippingCost = useMemo(() => {
     if (cart.length === 0) return 0;
     if (deliveryType === 'STORE_PICKUP') return 0;
-    if (store.freeShippingThreshold > 0 && subtotal >= store.freeShippingThreshold) {
+    if (
+      hasFreeShippingThreshold &&
+      store.freeShippingThreshold !== null &&
+      subtotal >= store.freeShippingThreshold
+    ) {
       return 0;
     }
     return store.shippingFee;
-  }, [cart.length, deliveryType, subtotal, store.freeShippingThreshold, store.shippingFee]);
+  }, [
+    cart.length,
+    deliveryType,
+    subtotal,
+    hasFreeShippingThreshold,
+    store.freeShippingThreshold,
+    store.shippingFee,
+  ]);
 
   const totalAmount = subtotal + shippingCost;
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -398,9 +416,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                   <h1 className="text-xl sm:text-2xl font-bold text-[#33261f] tracking-tight">
                     {store.name}
                   </h1>
-                  <span className="bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
-                    Resmi Mağaza ✓
-                  </span>
+                  {store.verified && (
+                    <span className="bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
+                      Resmi Mağaza ✓
+                    </span>
+                  )}
                 </div>
 
                 {store.tagline && (
@@ -419,7 +439,7 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                     <Instagram className="w-3.5 h-3.5" />@{store.instagramHandle}
                   </a>
 
-                  {store.freeShippingThreshold > 0 && (
+                  {hasFreeShippingThreshold && store.freeShippingThreshold !== null && (
                     <span className="inline-flex items-center gap-1 font-medium text-[#415e58] bg-[#edf2eb] px-2.5 py-1 rounded-full border border-[#d4e0d1]">
                       <Truck className="w-3.5 h-3.5" />
                       {formatCurrency(store.freeShippingThreshold)} Üzeri Kargo Bedava
@@ -520,7 +540,11 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
                 product.name,
                 effectivePrice,
                 null,
-                currentVariant?.name
+                currentVariant?.name,
+                {
+                  storeType: store.storeType,
+                  whatsappTemplate: store.whatsappTemplate,
+                }
               );
 
               const productImages =
@@ -780,7 +804,10 @@ export default function StorefrontClient({ store }: { store: StoreType }) {
             </div>
 
             {/* Free Shipping Progress */}
-            {store.freeShippingThreshold > 0 && deliveryType === 'SHIPPING' && cart.length > 0 && (
+            {hasFreeShippingThreshold &&
+              store.freeShippingThreshold !== null &&
+              deliveryType === 'SHIPPING' &&
+              cart.length > 0 && (
               <div className="bg-[#edf2eb] border-b border-[#d4e0d1] px-5 py-2.5 text-xs text-[#415e58] font-medium">
                 {subtotal >= store.freeShippingThreshold ? (
                   <p className="flex items-center gap-1.5 font-semibold">

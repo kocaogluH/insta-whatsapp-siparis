@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { ensureDemoStore } from '@/lib/ensureSeed';
+import { SITE_NAME } from '@/lib/constants';
 import SellerPanelClient from '@/components/SellerPanelClient';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   return {
-    title: `Yönetim Paneli | ${slug} - Fiyat Cepte`,
+    title: {
+      absolute: `Yönetim Paneli | ${slug} - ${SITE_NAME}`,
+    },
     robots: { index: false, follow: false },
   };
 }

@@ -30,6 +30,8 @@ export async function GET() {
         whatsappPhone: true,
         instagramHandle: true,
         themeColor: true,
+        verified: true,
+        storeType: true,
         mustChangePin: true,
         isActive: true,
         createdAt: true,
@@ -63,6 +65,8 @@ export async function GET() {
         whatsappPhone: s.whatsappPhone,
         instagramHandle: s.instagramHandle,
         themeColor: s.themeColor,
+        verified: s.verified,
+        storeType: s.storeType,
         mustChangePin: s.mustChangePin,
         isActive: s.isActive,
         createdAt: s.createdAt,
@@ -148,8 +152,17 @@ export async function POST(req: Request) {
         pinHash: pinHash,
         pinVersion: 1,
         mustChangePin: true, // Yeni mağaza ilk girişte PIN değiştirmek zorunda
+        verified: Boolean(validated.verified ?? false),
+        storeType: validated.storeType || 'PHYSICAL',
+        whatsappTemplate: validated.whatsappTemplate || null,
         shippingFee: Number(body.shippingFee ?? 49.9),
-        freeShippingThreshold: Number(body.freeShippingThreshold ?? 750),
+        freeShippingThreshold:
+          body.freeShippingThreshold !== undefined &&
+          body.freeShippingThreshold !== null &&
+          body.freeShippingThreshold !== '' &&
+          Number(body.freeShippingThreshold) > 0
+            ? Number(body.freeShippingThreshold)
+            : null,
         address: body.address ? String(body.address).slice(0, 300).trim() : null,
         allowStorePickup: body.allowStorePickup !== false,
         stories: {

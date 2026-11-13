@@ -33,6 +33,8 @@ import {
   formatCurrency,
   buildCustomerStatusWhatsAppUrl,
   cleanPhoneForWhatsApp,
+  DEFAULT_PHYSICAL_WHATSAPP_TEMPLATE,
+  DEFAULT_SERVICE_WHATSAPP_TEMPLATE,
 } from '@/lib/format';
 
 export interface Variant {
@@ -102,7 +104,10 @@ export interface StoreData {
   whatsappPhone: string;
   instagramHandle: string;
   shippingFee: number;
-  freeShippingThreshold: number;
+  freeShippingThreshold: number | null;
+  storeType?: string;
+  whatsappTemplate?: string | null;
+  verified?: boolean;
   address: string | null;
   allowStorePickup: boolean;
   ibanInfo: string | null;
@@ -224,7 +229,9 @@ export default function SellerPanelClient({
     whatsappPhone: '',
     instagramHandle: '',
     shippingFee: 49.9,
-    freeShippingThreshold: 750,
+    freeShippingThreshold: '' as string | number,
+    storeType: 'PHYSICAL' as 'PHYSICAL' | 'SERVICE',
+    whatsappTemplate: '',
     address: '',
     allowStorePickup: true,
     ibanInfo: '',
@@ -254,7 +261,12 @@ export default function SellerPanelClient({
           whatsappPhone: data.whatsappPhone,
           instagramHandle: data.instagramHandle,
           shippingFee: data.shippingFee,
-          freeShippingThreshold: data.freeShippingThreshold,
+          freeShippingThreshold:
+            typeof data.freeShippingThreshold === 'number' && data.freeShippingThreshold > 0
+              ? String(data.freeShippingThreshold)
+              : '',
+          storeType: data.storeType === 'SERVICE' ? 'SERVICE' : 'PHYSICAL',
+          whatsappTemplate: data.whatsappTemplate || '',
           address: data.address || '',
           allowStorePickup: data.allowStorePickup,
           ibanInfo: data.ibanInfo || '',
@@ -741,10 +753,21 @@ export default function SellerPanelClient({
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const rawThreshold = String(settings.freeShippingThreshold ?? '').trim();
+    const parsedThreshold =
+      rawThreshold === '' || Number(rawThreshold) <= 0 ? null : Number(rawThreshold);
+
+    const payload = {
+      ...settings,
+      freeShippingThreshold: parsedThreshold,
+      storeType: settings.storeType,
+      whatsappTemplate: settings.whatsappTemplate.trim() || null,
+    };
+
     const res = await fetch(`/api/store/${slug}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
@@ -1779,20 +1802,67 @@ export default function SellerPanelClient({
 
               <div>
                 <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
-                  Ücretsiz Kargo Limiti (₺)
+                  Ücretsiz Kargo Limiti (₺) <span className="text-[#9e8e82] font-normal">(İsteğe Bağlı)</span>
                 </label>
                 <input
                   type="number"
                   step="0.1"
+                  min="0"
+                  placeholder="Boş bırakılırsa kargo bandı gösterilmez"
                   value={settings.freeShippingThreshold}
                   onChange={(e) =>
                     setSettings({
                       ...settings,
-                      freeShippingThreshold: Number(e.target.value),
+                      freeShippingThreshold: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
                 />
+                <p className="text-[10px] text-[#78695e] mt-1">
+                  Boş bırakırsanız vitrinde &quot;X ₺ üzeri kargo bedava&quot; bandı gösterilmez.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                  Mağaza / Ürün Türü
+                </label>
+                <select
+                  value={settings.storeType}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      storeType: e.target.value === 'SERVICE' ? 'SERVICE' : 'PHYSICAL',
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
+                >
+                  <option value="PHYSICAL">Fiziksel Ürün Mağazası (Varsayılan: Stok Sorusu)</option>
+                  <option value="SERVICE">Hizmet / Yazılım Mağazası (Varsayılan: Fiyat & Teslim Süresi)</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-[#4a3f39] mb-1">
+                  WhatsApp Soru Mesajı Şablonu <span className="text-[#9e8e82] font-normal">(İsteğe Bağlı)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={settings.whatsappTemplate}
+                  onChange={(e) =>
+                    setSettings({ ...settings, whatsappTemplate: e.target.value })
+                  }
+                  placeholder={
+                    settings.storeType === 'SERVICE'
+                      ? DEFAULT_SERVICE_WHATSAPP_TEMPLATE
+                      : DEFAULT_PHYSICAL_WHATSAPP_TEMPLATE
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-[#e5dcce] bg-[#fdfcf9] text-xs sm:text-sm outline-none text-[#33261f]"
+                />
+                <p className="text-[10px] text-[#78695e] mt-1">
+                  Boş bırakılırsa seçilen mağaza türüne göre varsayılan şablon kullanılır. Özel şablonda{' '}
+                  <code>{'{urun}'}</code> ve <code>{'{fiyat}'}</code> değişkenlerini kullanabilirsiniz.
+                </p>
               </div>
 
               <div className="sm:col-span-2">

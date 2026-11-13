@@ -18,6 +18,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { formatCurrency, cleanPhoneForWhatsApp } from '@/lib/format';
+import { SITE_NAME } from '@/lib/constants';
 
 export interface StoreItem {
   id: string;
@@ -27,6 +28,8 @@ export interface StoreItem {
   whatsappPhone: string;
   instagramHandle: string;
   themeColor: string;
+  verified: boolean;
+  storeType?: string;
   mustChangePin: boolean;
   isActive: boolean;
   createdAt: string;
@@ -87,6 +90,8 @@ export default function SuperAdminClient() {
   const [newStorePhone, setNewStorePhone] = useState('');
   const [newStoreIg, setNewStoreIg] = useState('');
   const [newStoreTheme, setNewStoreTheme] = useState('#3c302a');
+  const [newStoreVerified, setNewStoreVerified] = useState(false);
+  const [togglingVerifiedId, setTogglingVerifiedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -106,6 +111,36 @@ export default function SuperAdminClient() {
     temporaryPin: string;
   } | null>(null);
   const [copiedResetPin, setCopiedResetPin] = useState(false);
+
+  const handleToggleVerified = async (storeId: string, nextVerified: boolean) => {
+    setTogglingVerifiedId(storeId);
+    try {
+      const res = await fetch(`/api/admin/stores/${storeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verified: nextVerified }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Mağaza rozeti güncellenemedi.');
+        return;
+      }
+
+      setStores((prev) =>
+        prev.map((s) => (s.id === storeId ? { ...s, verified: Boolean(data.verified) } : s))
+      );
+      showToast(
+        nextVerified
+          ? `"${data.name}" için Resmi Mağaza ✓ rozeti aktif edildi.`
+          : `"${data.name}" için Resmi Mağaza ✓ rozeti kaldırıldı.`
+      );
+    } catch {
+      showToast('Bağlantı hatası oluştu.');
+    } finally {
+      setTogglingVerifiedId(null);
+    }
+  };
 
   const handleResetPin = async (storeId: string, storeName: string) => {
     const confirmed = window.confirm(
@@ -210,6 +245,7 @@ export default function SuperAdminClient() {
           whatsappPhone: newStorePhone,
           instagramHandle: newStoreIg,
           themeColor: newStoreTheme,
+          verified: newStoreVerified,
         }),
       });
 
@@ -224,6 +260,7 @@ export default function SuperAdminClient() {
       setNewStoreTagline('');
       setNewStorePhone('');
       setNewStoreIg('');
+      setNewStoreVerified(false);
 
       // Geçici PIN sonucunu admine tek seferlik göster
       setCreatedStoreResult({
@@ -274,7 +311,7 @@ export default function SuperAdminClient() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-sm sm:text-base text-[#312925]">
-                  InstaSipariş Ajans Yönetimi
+                  {SITE_NAME} Ajans Yönetimi
                 </h1>
                 <span className="bg-[#f0ebe1] text-[#786c64] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#ded4c3]">
                   Süper Admin
@@ -421,9 +458,16 @@ export default function SuperAdminClient() {
                           {st.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-bold text-sm sm:text-base text-[#312925] leading-snug">
-                            {st.name}
-                          </h3>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-bold text-sm sm:text-base text-[#312925] leading-snug">
+                              {st.name}
+                            </h3>
+                            {st.verified && (
+                              <span className="bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
+                                Resmi Mağaza ✓
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-[#8a7c73] font-mono">
                             /{st.slug}
                           </p>
@@ -529,6 +573,23 @@ export default function SuperAdminClient() {
                       {copiedSlug === st.slug
                         ? 'Bio Linki Kopyalandı ✓'
                         : 'Müşteriye Verilecek Bio Linkini Kopyala'}
+                    </button>
+
+                    <button
+                      onClick={() => handleToggleVerified(st.id, !st.verified)}
+                      disabled={togglingVerifiedId === st.id}
+                      className={`w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold border transition cursor-pointer disabled:opacity-50 ${
+                        st.verified
+                          ? 'bg-[#edf2eb] hover:bg-[#e1ebe0] text-[#415e58] border-[#d4e0d1]'
+                          : 'bg-[#f9f7f2] hover:bg-[#ede5d8] text-[#786c64] border-[#ded4c3]'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {togglingVerifiedId === st.id
+                        ? 'Güncelleniyor...'
+                        : st.verified
+                        ? 'Resmi Mağaza ✓ (Kaldır)'
+                        : 'Resmi Mağaza ✓ Rozeti Ver'}
                     </button>
 
                     <button
@@ -650,6 +711,18 @@ export default function SuperAdminClient() {
                     onChange={(e) => setNewStoreTagline(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#ded4c3] bg-[#fdfcf9] text-xs outline-none text-[#312925]"
                   />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#4a3f39] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newStoreVerified}
+                      onChange={(e) => setNewStoreVerified(e.target.checked)}
+                      className="rounded border-[#ded4c3] text-[#312925]"
+                    />
+                    <span>&quot;Resmi Mağaza ✓&quot; rozetini aktif et (Varsayılan: Pasif)</span>
+                  </label>
                 </div>
               </div>
 

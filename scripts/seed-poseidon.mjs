@@ -224,6 +224,8 @@ async function main() {
     body: JSON.stringify({
       logoUrl: '/images/poseidon/logo.jpg',
       bannerUrl: '/images/poseidon/banner.jpg',
+      storeType: 'SERVICE',
+      freeShippingThreshold: null,
       address: storeData.address || 'Antakya / Hatay',
       tagline: storeData.tagline || 'Poseidon Enterprise Solutions — Web, Mobil & Özel Yazılım Çözümleri',
       description:

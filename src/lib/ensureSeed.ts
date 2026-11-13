@@ -53,6 +53,15 @@ export async function ensureDemoStore() {
       });
     }
 
+    if (existing.logoUrl && existing.logoUrl.includes('w=300')) {
+      await prisma.store.update({
+        where: { id: existing.id },
+        data: {
+          logoUrl: existing.logoUrl.replace('w=300', 'w=800'),
+        },
+      });
+    }
+
     if (!existing.pinHash) {
       const generatedPin = crypto.randomInt(100000, 999999).toString();
       await prisma.store.update({
@@ -77,9 +86,9 @@ export async function ensureDemoStore() {
       description:
         'Sakin tonlar, birinci sınıf kumaşlar ve zamansız tasarımlar. Mağazamızdan hızlı gel-al veya aynı gün kargo.',
       bannerUrl:
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80',
+        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&h=630&q=80',
       logoUrl:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
       themeColor: '#3c302a', // Tan 10 / Koyu Espresso
       whatsappPhone: '905551234567',
       instagramHandle: 'nisantasibutik.demo',

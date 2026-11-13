@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next';
+import { SITE_NAME } from '@/lib/constants';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Fiyat Cepte | Butik Bio Kataloğu & Sipariş',
-    short_name: 'Fiyat Cepte',
+    name: `${SITE_NAME} | Butik Bio Kataloğu & Sipariş`,
+    short_name: SITE_NAME,
     description: 'Instagram butikleri ve mağazalar için bio sipariş ve stok kataloğu.',
     start_url: '/',
     display: 'standalone',
