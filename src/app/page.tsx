@@ -21,14 +21,14 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#3e312b] flex items-center justify-center font-bold text-[#f7f4ee] text-sm shadow-xs">
-              IS
+              FC
             </div>
             <div>
               <span className="font-bold text-base sm:text-lg tracking-tight text-[#33261f]">
-                InstaSipariş
+                Fiyat Cepte
               </span>
               <span className="ml-2 bg-[#f2ece1] text-[#78695e] text-[10px] font-semibold px-2 py-0.5 rounded-full border border-[#e5dcce]">
-                Doğal Butik Platformu
+                Hızlı Butik &amp; Sipariş Platformu
               </span>
             </div>
           </div>
@@ -187,7 +187,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-[#e5dcce] py-6 px-4 bg-white/40 text-center text-xs text-[#78695e]">
-        InstaSipariş Platformu &bull; Doğal tonlarda Instagram &amp; WhatsApp butik sipariş altyapısı
+        Fiyat Cepte Platformu &bull; Instagram &amp; WhatsApp Hızlı Butik ve Sipariş Altyapısı
       </footer>
     </div>
   );

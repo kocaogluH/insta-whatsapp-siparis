@@ -18,14 +18,14 @@ const BUTIK_PIN = process.env.BUTIK_PIN?.trim();
 if (!rawBaseUrl || !ADMIN_PASSWORD || !BUTIK_SLUG || !BUTIK_PIN) {
   console.error('\n❌ HATA: Eksik ortam değişkeni tespit edildi!');
   console.error('Lütfen şu 4 değişkeni tanımlayarak çalıştırın:\n');
-  console.error('  BASE_URL        : Hedef site adresi (örn: https://insta-whatsapp-siparis.vercel.app)');
+  console.error('  BASE_URL        : Hedef site adresi (örn: https://fiyat-cepte.vercel.app)');
   console.error('  ADMIN_PASSWORD  : Süper admin parolası');
   console.error('  BUTIK_SLUG      : Test edilecek butik slug adı (örn: butikmoda)');
   console.error('  BUTIK_PIN       : Butik satıcısının 6 haneli PIN kodu\n');
   console.error('Örnek Çalıştırma (Linux / macOS / Git Bash):');
-  console.error('  BASE_URL=https://insta-whatsapp-siparis.vercel.app ADMIN_PASSWORD=... BUTIK_SLUG=butikmoda BUTIK_PIN=... node scripts/security-check.mjs\n');
+  console.error('  BASE_URL=https://fiyat-cepte.vercel.app ADMIN_PASSWORD=... BUTIK_SLUG=butikmoda BUTIK_PIN=... node scripts/security-check.mjs\n');
   console.error('Örnek Çalıştırma (Windows PowerShell):');
-  console.error('  $env:BASE_URL="https://insta-whatsapp-siparis.vercel.app"; $env:ADMIN_PASSWORD="..."; $env:BUTIK_SLUG="butikmoda"; $env:BUTIK_PIN="..."; node scripts/security-check.mjs\n');
+  console.error('  $env:BASE_URL="https://fiyat-cepte.vercel.app"; $env:ADMIN_PASSWORD="..."; $env:BUTIK_SLUG="butikmoda"; $env:BUTIK_PIN="..."; node scripts/security-check.mjs\n');
   process.exit(1);
 }
 

@@ -5,7 +5,7 @@ import AdminLoginClient from './AdminLoginClient';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Süper Admin Girişi | InstaSipariş',
+  title: 'Süper Admin Girişi | Fiyat Cepte',
   robots: {
     index: false,
     follow: false,

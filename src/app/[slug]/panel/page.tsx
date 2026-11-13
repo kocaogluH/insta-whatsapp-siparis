@@ -13,7 +13,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   return {
-    title: `Yönetim Paneli | ${slug} - InstaSipariş`,
+    title: `Yönetim Paneli | ${slug} - Fiyat Cepte`,
     robots: { index: false, follow: false },
   };
 }

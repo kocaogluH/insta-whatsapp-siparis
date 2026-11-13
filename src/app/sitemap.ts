@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://insta-whatsapp-siparis.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://fiyat-cepte.vercel.app';
 
   try {
     const stores = await prisma.store.findMany({

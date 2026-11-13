@@ -8,30 +8,30 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://insta-whatsapp-siparis.vercel.app';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://fiyat-cepte.vercel.app';
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'InstaSipariş | Instagram & WhatsApp Sipariş Kataloğu',
-    template: '%s | InstaSipariş',
+    default: 'Fiyat Cepte | Instagram & WhatsApp Sipariş Kataloğu',
+    template: '%s | Fiyat Cepte',
   },
   description:
     'Instagram butikleri ve dükkanlar için bio sipariş kataloğu, WhatsApp/DM sepeti ve anlık stok yönetim sistemi.',
-  applicationName: 'InstaSipariş',
-  authors: [{ name: 'InstaSipariş' }],
+  applicationName: 'Fiyat Cepte',
+  authors: [{ name: 'Fiyat Cepte' }],
   openGraph: {
     type: 'website',
     locale: 'tr_TR',
     url: baseUrl,
-    siteName: 'InstaSipariş',
-    title: 'InstaSipariş | Instagram & WhatsApp Sipariş Kataloğu',
+    siteName: 'Fiyat Cepte',
+    title: 'Fiyat Cepte | Instagram & WhatsApp Sipariş Kataloğu',
     description:
       'Instagram butikleri ve dükkanlar için bio sipariş kataloğu, WhatsApp/DM sepeti ve anlık stok yönetim sistemi.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'InstaSipariş | Instagram & WhatsApp Sipariş Kataloğu',
+    title: 'Fiyat Cepte | Instagram & WhatsApp Sipariş Kataloğu',
     description:
       'Instagram butikleri ve dükkanlar için bio sipariş kataloğu, WhatsApp/DM sepeti ve anlık stok yönetim sistemi.',
   },
@@ -48,7 +48,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="InstaSipariş" />
+        <meta name="apple-mobile-web-app-title" content="Fiyat Cepte" />
       </head>
       <body className="min-h-screen bg-[#f7f4ee] text-[#33261f] antialiased selection:bg-[#ded4c3] selection:text-[#312925]">
         {children}

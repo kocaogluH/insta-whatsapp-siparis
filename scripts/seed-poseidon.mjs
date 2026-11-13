@@ -6,12 +6,12 @@
  *   $env:BUTIK_PIN="6_HANELI_PININIZ"; node scripts/seed-poseidon.mjs
  *
  * Opsiyonel Değişkenler:
- *   BASE_URL   (varsayılan: https://insta-whatsapp-siparis.vercel.app)
+ *   BASE_URL   (varsayılan: https://fiyat-cepte.vercel.app)
  *   BUTIK_SLUG (varsayılan: poseidonyazilim)
  * ==============================================================================
  */
 
-const BASE_URL = (process.env.BASE_URL || 'https://insta-whatsapp-siparis.vercel.app').replace(/\/+$/, '');
+const BASE_URL = (process.env.BASE_URL || 'https://fiyat-cepte.vercel.app').replace(/\/+$/, '');
 const BUTIK_SLUG = (process.env.BUTIK_SLUG || 'poseidonyazilim').trim();
 const BUTIK_PIN = process.env.BUTIK_PIN?.trim();
 
