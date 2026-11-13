@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSellerSession } from '@/lib/auth';
+import { ensureStoreSchemaColumns } from '@/lib/ensureSeed';
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    await ensureStoreSchemaColumns();
     const { slug } = await params;
     const session = await getSellerSession();
 

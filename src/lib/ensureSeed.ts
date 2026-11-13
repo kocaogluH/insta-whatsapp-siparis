@@ -2,7 +2,42 @@ import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
+let schemaVerified = false;
+
+export async function ensureStoreSchemaColumns() {
+  if (schemaVerified) return;
+  const dbUrl =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL ||
+    '';
+
+  if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+    try {
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "storeType" TEXT NOT NULL DEFAULT 'PHYSICAL';`
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "whatsappTemplate" TEXT;`
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "verified" BOOLEAN NOT NULL DEFAULT false;`
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Store" ALTER COLUMN "freeShippingThreshold" DROP NOT NULL;`
+      );
+      schemaVerified = true;
+    } catch (err) {
+      console.warn('Schema column check warning:', err);
+    }
+  } else {
+    schemaVerified = true;
+  }
+}
+
 export async function ensureDemoStore() {
+  await ensureStoreSchemaColumns();
+
   const existing = await prisma.store.findUnique({
     where: { slug: 'butikmoda' },
     include: { stories: true },
