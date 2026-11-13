@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   LogOut,
   KeyRound,
+  Trash2,
 } from 'lucide-react';
 import {
   formatCurrency,
@@ -198,6 +199,7 @@ export default function SellerPanelClient({
     { name: 'S', sku: '', stock: 5 },
     { name: 'M', sku: '', stock: 5 },
   ]);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
   // Ayarlar Form State'i
   const [settings, setSettings] = useState({
@@ -548,6 +550,35 @@ export default function SellerPanelClient({
       }
     } catch {
       showToast('Ürün eklenirken sunucu hatası oluştu');
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (
+      !window.confirm(
+        `"${productName}" adlı ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingProductId(productId);
+    try {
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        showToast('Ürün başarıyla silindi! 🗑️');
+        fetchPanelData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Ürün silinemedi');
+      }
+    } catch {
+      showToast('Ürün silinirken bir hata oluştu');
+    } finally {
+      setDeletingProductId(null);
     }
   };
 
@@ -1067,12 +1098,23 @@ export default function SellerPanelClient({
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between gap-1">
-                        <h4 className="font-bold text-xs sm:text-sm text-[#33261f] line-clamp-1">
-                          {p.name}
-                        </h4>
-                        <span className="text-[10px] bg-[#f2ece1] text-[#78695e] px-1.5 py-0.5 rounded">
-                          {p.category}
-                        </span>
+                        <div className="flex-1 min-w-0 pr-1">
+                          <h4 className="font-bold text-xs sm:text-sm text-[#33261f] line-clamp-1">
+                            {p.name}
+                          </h4>
+                          <span className="text-[10px] bg-[#f2ece1] text-[#78695e] px-1.5 py-0.5 rounded">
+                            {p.category}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(p.id, p.name)}
+                          disabled={deletingProductId === p.id}
+                          className="p-1.5 text-[#a89a90] hover:text-[#b91c1c] hover:bg-[#fee2e2] rounded-lg transition shrink-0 cursor-pointer disabled:opacity-50"
+                          title="Ürünü Sil"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                       <div className="flex items-baseline gap-2 mt-1">
                         <span className="text-sm font-bold text-[#8c5f4a]">

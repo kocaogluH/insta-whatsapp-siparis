@@ -112,6 +112,11 @@ export async function DELETE(
       );
     }
 
+    // Güvenlik ve veri bütünlüğü: Varsa önce ürünün varyantlarını temizle
+    await prisma.productVariant.deleteMany({
+      where: { productId: id },
+    });
+
     await prisma.product.delete({
       where: { id },
     });
