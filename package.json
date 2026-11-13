@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "prisma generate --schema=prisma/schema.postgresql.prisma && prisma db push --schema=prisma/schema.postgresql.prisma --accept-data-loss && node scripts/migrate-pins.js && next build",
+    "vercel-build": "prisma generate --schema=prisma/schema.postgresql.prisma && node -e \"if (process.env.DATABASE_URL) { const { execSync } = require('child_process'); execSync('prisma db push --schema=prisma/schema.postgresql.prisma --accept-data-loss && node scripts/migrate-pins.js', { stdio: 'inherit' }); } else { console.log('DATABASE_URL bulunamadı, db push atlanıyor...'); }\" && next build",
     "start": "next start",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js"
